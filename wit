@@ -6,6 +6,7 @@ use Term::ANSIColor;
 ###
 #   What Is This (wit)
 #   Simple Fast System Information
+#   MIT License
 #   Written by: Kuroilight@openmailbox.org
 ###
 my $wit_version = '0.25.0';
