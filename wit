@@ -29,7 +29,7 @@ my $FILES = {
 };
 my @APPS = (
     #'lspci --version', #not yet needed
-    'dmidecode --version', #requires root so I need a non-root replacement
+    ( $HASROOT ? 'dmidecode --version' : undef ), #requires root so I need a non-root replacement
     'free --version',
     'uname --version',
     'whoami --version',
@@ -47,17 +47,21 @@ sub Requires {
 
     my $missing = 0;
     for my $value(values $FILES) {
-        if(not -e -r $value){
-            print "Missing file '$value'...\n";
-            $missing += 1;
-        }
+        do {
+            if(not -e -r $value){
+                print "Missing file '$value'...\n";
+                $missing += 1;
+            }
+        } if $value;
     }
     for my $elem(@APPS) {
-        `$elem`;
-        if($?) {
-            print "Missing command '$elem'...\n";
-            $missing += 1;
-        }
+        do {
+            `$elem`;
+            if($?) {
+                print "Missing command '$elem'...\n";
+                $missing += 1;
+            }
+        } if $elem;
     }
     if ($missing) {
         print "$missing dependencie${( $missing > 1 ? 's' : '')} not found... exiting.\n";
