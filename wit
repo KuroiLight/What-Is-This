@@ -1,0 +1,299 @@
+#!/usr/bin/perl
+use 5.010;
+use Term::ANSIColor;
+#use warnings;
+
+###
+#   What Is This (wit)
+#   Simple Fast System Information
+#   Written by: Kuroilight@openmailbox.org
+###
+my $wit_version = '0.25.0';
+my $DEBUG = 0; #set to 1 to enable verbose output (needs a switch)
+my $HASROOT = ($< + $>) ? 0 : 1; #check for root
+
+#==========================REGEX
+my $LEADING_TRAILING_WHITESPACE = qr/(^(\s+|\n)|(\s+|\n)$)/;
+my $VERSION_MATCH = qr/([0-9]+\.[0-9]+\.?[0-9]+?)/;
+
+#==========================DEPENDENCIES
+my $FILES = {
+    SHELLS => '/etc/shells',
+    #MEMINFO => '/proc/meminfo', #not yet needed
+    CPUINFO => '/proc/cpuinfo',
+    #LSPCI => './lspci_v', #not yet needed
+    BIOSLIMIT => '/sys/devices/system/cpu/cpu0/cpufreq/bios_limit',
+    #DMIID => '/sys/class/dmi/id/', #not yet needed
+    LSBR => '/etc/lsb-release',
+};
+my @APPS = (
+    #'lspci --version', #not yet needed
+    'dmidecode --version', #requires root so I need a non-root replacement
+    'free --version',
+    'uname --version',
+    'whoami --version',
+    'hostname --version',
+);
+#==========================
+my $bCOLORS256 = 1; #needs a switch or detection
+
+my $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
+my $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'cyan');
+my $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
+
+sub Requires {
+    print "$^O hmmm... \nprobably not going to work on your system, will try anyways...\n" if (not $^O =~ /linux/); #not sure if it matters
+
+    my $missing = 0;
+    for my $value(values $FILES) {
+        if(not -e -r $value){
+            print "Missing file '$value'...\n";
+            $missing += 1;
+        }
+    }
+    for my $elem(@APPS) {
+        `$elem`;
+        if($?) {
+            print "Missing command '$elem'...\n";
+            $missing += 1;
+        }
+    }
+    if ($missing) {
+        print "$missing dependencie${( $missing > 1 ? 's' : '')} not found... exiting.\n";
+        exit 1;
+    }
+}
+
+sub OpenFile { 
+    my $filename = $_[0]; my $filehandle;
+    print "[DBG] openning file $filename..." if $DEBUG;
+    if(-e -r $filename) {
+        open($filehandle, '<', $filename);
+        print "openned.\n" if $DEBUG;
+        return $filehandle;
+    }
+    return undef;
+}
+
+#this sub feels like awk, which is the reason for the name
+sub Awk { #pass (target text, pattern, index) if target is `command` or <file> use scalar.
+    my $target = $_[0]; my $result; my $pattern = $_[1]; my $index = $_[2];
+    if ($DEBUG) {
+        print ("[DBG] Awk($target, $pattern, $index);\n[DBG] possible matches ");
+        foreach my $elem(split($pattern, $target)) {
+            print "$elem | ";
+        }
+    }
+    $result = ( split /$pattern/, $target )[$index];
+    $result = TrimWhite($result) if $result;
+    print "\nreturned " . ($result ? "'$result'" : 'undef') . "\n" if $DEBUG;
+    return $result;
+}
+
+sub TrimWhite { #pass (target text)
+    return (split($LEADING_TRAILING_WHITESPACE, $_[0]))[0];
+}
+
+sub Startup { #init code here
+    print (color 'reset');
+}
+
+sub Cleanup { #clean up here
+    print (color 'reset');
+}
+
+#==========================SHELL INFORMATION
+my @shells = ( 
+    # name is a regex pattern, 
+    # versioncmd is the shell command to get version information,
+    # path and version must be undef and 'unknown' respectively;
+    { name => 'bash', path => undef, versioncmd => 'bash --version', version => undef },
+    { name => 'fish', path => undef, versioncmd => 'fish --version 2>&1', version => undef },
+    { name => 'zsh', path => undef, versioncmd => 'zsh --version', version => undef },
+    { name => 'mksh', path => undef, versioncmd => undef, version => undef },
+    { name => 'tcsh', path => undef, versioncmd => 'tcsh --version', version => undef }
+);
+
+sub GetShellInfo {
+    if(my $handle = OpenFile($FILES->{SHELLS})) {
+        my @buffer = <$handle>; close $handle;
+        foreach my $elem(@shells) {
+            $elem->{path} = (grep(/$elem->{name}/, @buffer))[0]; 
+            $elem->{path} = TrimWhite($elem->{path}) if $elem->{path};
+            $elem->{version} = Awk(scalar `$elem->{versioncmd}`, $VERSION_MATCH, 1) if $elem->{path};
+        }
+        undef @buffer;
+    }
+}
+#==========================CPU INFORMATION
+my $processor = {
+    vendor => undef,
+    name => undef,
+    cores => undef,
+    ht => undef,
+    freq => undef,
+};
+
+sub GetCPUInfo {
+    my $ahandle = OpenFile($FILES->{CPUINFO});
+    my @buffer = <$ahandle>;
+    close($ahandle);
+    if(@buffer) {
+        $processor->{vendor} = Awk((grep(/vendor_id/, @buffer))[0], ': ', 1);
+        $processor->{name} = Awk((grep(/model name/, @buffer))[0], ': ', 1);
+        $processor->{cores} = Awk((grep(/cpu cores/, @buffer))[0], ': ', 1);
+        do {$processor->{ht} = 1; $processor->{cores} /= 2; } if(Awk((grep(/siblings/, @buffer))[0], ': ', 1) == ($processor->{cores} * 2));
+        if(my $handle = OpenFile($FILES->{BIOSLIMIT})) {
+            print "[DBG] fetching freq from bios_limit...\n" if $DEBUG;
+            $processor->{freq} = (scalar <$handle>) / (1000**2);
+            close($handle);
+        } else {
+            $processor->{freq} = Awk((grep(/cpu MHz/, @buffer))[0], ': ', 1) / 1000;
+        }
+        $processor->{freq} = sprintf('%0.2f', $processor->{freq});
+    }
+    undef @buffer;
+}
+#==========================SCRIPTING LANGUAGES
+my @bin_locations = (
+    '/bin/', '/usr/bin/', '/usr/local/bin/', '/usr/sbin/'
+); #I know there are others will add later though probably not needed.
+
+my @script_langs = ( 
+    { name => 'Lua', path => undef, versioncmd => 'lua -v', version => undef },
+    { name => 'Perl', path => undef, versioncmd => 'perl --version', version => undef },
+    { name => 'Ruby', path => undef, versioncmd => 'ruby --version', version => undef },
+    { name => 'Python3', path => undef, versioncmd => 'python --version 2>&1', version => undef },
+    { name => 'Python2', path => undef, versioncmd => 'python2 --version 2>&1', version => undef },
+);
+
+sub GetSLInfo {
+    foreach my $elem(@script_langs) {
+        BINS:foreach my $loc(@bin_locations) {
+            print "Checking if $elem->{name} exists at $loc$elem->{name}..." if $DEBUG;
+            if(-e lc "$loc$elem->{name}") {
+                print "Does.\n" if $DEBUG;
+                $elem->{path} = "$loc$elem->{name}";
+                last BINS;
+            }
+            print "Does not.\n" if $DEBUG;
+        }
+        $elem->{version} = Awk(scalar `$elem->{versioncmd}`, $VERSION_MATCH, 1) if $elem->{path};
+    }
+}
+#==========================OPERATING SYSTEM
+my $os = {
+    userhost => undef,
+    kernel => undef,
+    distro => undef,
+    distro_version => undef,
+};
+
+sub GetOSInfo {
+    $os->{kernel} = TrimWhite (`uname -s`) . ' ' . TrimWhite (Awk(`uname -r`, $VERSION_MATCH, 1)) . ' ' . TrimWhite (`uname -m`);
+    $os->{userhost} = TrimWhite (`whoami`) . '@' . TrimWhite(`hostname`);
+    my $ahandle = OpenFile($FILES->{LSBR});
+    my @buffer = <$ahandle>;
+    close($ahandle);
+    $os->{distro} = Awk((grep(/DISTRIB_ID/, @buffer))[0], '=', 1);
+    $os->{distro_version} = TrimWhite(Awk((grep(/DISTRIB_RELEASE/, @buffer))[0], '=', 1)) . ' ' . TrimWhite(Awk((grep(/DISTRIB_CODENAME/, @buffer))[0], '=', 1));
+    undef @buffer;
+}
+#==========================MEMORY INFORMATION
+my $memory = {
+    man => undef,
+    part => undef,
+    speed => undef,
+    ram_used => undef,
+    ram_total => undef,
+    swap_used => undef,
+    swap_total => undef,
+    slots => undef,
+    chips => undef,
+    type => undef,
+};
+
+sub GetMemInfo {
+    my $buffer = `free -k`;
+
+    $memory->{ram_total} = int Awk(Awk($buffer, '\n', 1), '\s+', 1) / 1024;
+    $memory->{ram_used} = int Awk(Awk($buffer, '\n', 1), '\s+', 2);
+    $memory->{ram_used} =  int (($memory->{ram_used} - (Awk(Awk($buffer, '\n', 1), '\s+', 5) + Awk(Awk($buffer, '\n', 1), '\s+', 6))) / 1024);
+    
+    $memory->{swap_total} = int Awk(Awk($buffer, '\n', 3), '\s+', 1) / 1024;
+    $memory->{swap_used} = int Awk(Awk($buffer, '\n', 3), '\s+', 2) / 1024;
+
+    if($HASROOT) { #get chip info if we have root.
+        my @dmibuf = `dmidecode --type memory`;
+        my $index = 0;
+
+        $memory->{slots} = Awk(((grep(/Number Of Devices\:\ /, @dmibuf))[0]), '\: ', 1);
+        $memory->{chips} = $memory->{slots} - scalar grep(/No Module Installed/, @dmibuf);
+        while(Awk((grep(/Size/, @dmibuf))[$index], '\: ', 1) =~ /No Module Installed/) { #find first installed module
+            $index++;
+        }
+        $memory->{type} = (grep(/Type\:\ /, @dmibuf))[$index+1];
+        $memory->{type} = Awk($memory->{type}, '\: ', 1);
+        $memory->{type} = TrimWhite($memory->{type});
+
+        $memory->{man} = Awk((grep(/Manufacturer/, @dmibuf))[$index], '\: ', 1);
+        $memory->{man} = TrimWhite($memory->{man});
+
+        $memory->{part} = Awk((grep(/Part Number/, @dmibuf))[$index], '\: ', 1);
+        $memory->{part} = TrimWhite($memory->{part});
+
+        $memory->{speed} = Awk((grep(/Configured Clock Speed/, @dmibuf))[$index], '\: ', 1);
+        $memory->{speed} = (split(/[\s+\n]/, $memory->{speed}))[0];
+    }
+}
+
+#==========================WRITE OUTPUT/MAIN
+Requires();
+Startup();
+
+GetShellInfo();
+GetSLInfo();
+GetCPUInfo();
+GetMemInfo();
+GetOSInfo();
+
+#needs a switch
+#print "What Is This\n\twit\t\t[$wit_version]\n";
+    
+    print "${title_color}Operating System-\n";
+    print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n${subtitle_color}\tHost\@User\t${value_color}$os->{userhost}\n";
+
+    my $mshells = 0;
+    print "${title_color}Shells-\n\t";
+    foreach my $elem(@shells) {
+        $mshells++;
+        do {
+            print "\n\t" if $mshells > 1;
+            print( ${subtitle_color}, ucfirst((split(/\//, $elem->{path}))[-1]), ${value_color}, "\t\t[$elem->{version}]")
+        } if $elem->{path};
+    } print "\n";
+
+    my $mlangs = 0;
+    print "${title_color}Interpreters-\n\t";
+    foreach my $elem(@script_langs) {
+        $mlangs++;
+        do {
+            print "\n\t" if $mlangs > 1;
+            print "${subtitle_color}$elem->{name}\t\t${value_color}[$elem->{version}]"
+        } if $elem->{path};
+    } print "\n";
+
+    print "${title_color}Processor-\n\t";
+    print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t${subtitle_color}Details\t${value_color}\t$processor->{cores}-Cores @ $processor->{freq}ghz" . ($processor->{ht} ? " with hyper-threading\n" : "\n");
+
+
+    print "${title_color}Memory-\n";
+    if($HASROOT) {
+        print "\t${subtitle_color}Modules\t${value_color}\t$memory->{man} $memory->{part} [$memory->{chips}/$memory->{slots}]\n";
+        print "\t${subtitle_color}Type\t${value_color}\t$memory->{type} @ $memory->{speed}mhz\n" if $memory->{man};
+    }
+    print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}m\n" if $memory->{ram_total};
+    print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}m/$memory->{swap_total}m\n" if $memory->{swap_total};
+
+    
+    Cleanup();
