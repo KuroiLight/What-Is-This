@@ -20,17 +20,14 @@ my $VERSION_MATCH = qr/([0-9]+\.[0-9]+\.?[0-9]+?)/;
 #==========================DEPENDENCIES
 my $FILES = {
     SHELLS => '/etc/shells',
-    MEMINFO => '/proc/meminfo', #not yet needed
+    MEMINFO => '/proc/meminfo',
     CPUINFO => '/proc/cpuinfo',
-    #LSPCI => './lspci_v', #not yet needed
     BIOSLIMIT => '/sys/devices/system/cpu/cpu0/cpufreq/bios_limit',
     #DMIID => '/sys/class/dmi/id/', #not yet needed
     LSBR => '/etc/lsb-release',
 };
 my @APPS = (
-    #'lspci --version', #not yet needed
     ( $HASROOT ? 'dmidecode --version' : undef ), #requires root so I need a non-root replacement
-    #'free --version',
     'uname --version',
     'whoami --version',
     'hostname --version',
@@ -80,7 +77,7 @@ sub OpenFile {
     return undef;
 }
 
-#this sub feels like awk, which is the reason for the name
+#this sub feels like awk, which is the reason for the name, may change later
 sub Awk { #pass (target text, pattern, index) if target is `command` or <file> use scalar.
     my $target = $_[0]; my $result; my $pattern = $_[1]; my $index = $_[2];
     if ($DEBUG) {
@@ -236,13 +233,7 @@ sub GetMemInfo {
     
     $memory->{ram_total} = int($memory->{ram_total} / 1024);
 
-
-    #$memory->{ram_total} = int Awk(Awk($buffer, '\n', 1), '\s+', 1) / 1024;
-    #$memory->{ram_used} = int Awk(Awk($buffer, '\n', 1), '\s+', 2);
-    #$memory->{ram_used} =  int (($memory->{ram_used} - (Awk(Awk($buffer, '\n', 1), '\s+', 5) + Awk(Awk($buffer, '\n', 1), '\s+', 6))) / 1024);
-    
     $memory->{swap_total} = Awk((grep(/SwapTotal/, @buffer))[0], $re_number, 1);
-
     $memory->{swap_used} = int(($memory->{swap_total}
         - (Awk((grep(/SwapFree/, @buffer))[0], $re_number, 1)
         + Awk((grep(/SwapCached/, @buffer))[0], $re_number, 1))
@@ -250,8 +241,6 @@ sub GetMemInfo {
 
     $memory->{swap_total} = int($memory->{swap_total} / 1024);
     $DEBUG = 0;
-    #$memory->{swap_total} = int Awk(Awk($buffer, '\n', 3), '\s+', 1) / 1024;
-    #$memory->{swap_used} = int Awk(Awk($buffer, '\n', 3), '\s+', 2) / 1024;
     
     #might not keep this ->v
     if($HASROOT) { #get chip info if we have root.
