@@ -266,7 +266,7 @@ GetOSInfo();
 #print "What Is This\n\twit\t\t[$wit_version]\n";
     
     print "${title_color}Operating System-\n";
-    print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n${subtitle_color}\tHost\@User\t${value_color}$os->{userhost}\n";
+    print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n";
 
     my $mshells = 0;
     print "${title_color}Shells-\n\t";
