@@ -199,6 +199,7 @@ sub GetOSInfo {
     my @buffer = <$ahandle>;
     close($ahandle);
     $os->{distro} = Awk((grep(/DISTRIB_ID/, @buffer))[0], '=', 1);
+    $os->{distro} =~ s/[Ll]inux//;
     $os->{distro_version} = TrimWhite(Awk((grep(/DISTRIB_RELEASE/, @buffer))[0], '=', 1)) . ' ' . TrimWhite(Awk((grep(/DISTRIB_CODENAME/, @buffer))[0], '=', 1));
     undef @buffer;
 }
