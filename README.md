@@ -5,7 +5,7 @@ A simple fast system information script written in perl, for linux.
  * MIT License
  * Kuroilight @ openmailbox.org
 
- ### features (in progress)
+ ### feature/todo progress
  - [x] distro and kernel
  - [x] processor
  - [x] memory

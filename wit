@@ -25,10 +25,13 @@ my $FILES = {
     BIOSLIMIT => '/sys/devices/system/cpu/cpu0/cpufreq/bios_limit',
     #DMIID => '/sys/class/dmi/id/', #not yet needed
     LSBR => '/etc/lsb-release',
+    VERSION => '/proc/version',
+    #CMDLINE => '/proc/cmdline', #can pool this for architecture
+
 };
 my @APPS = (
     ( $HASROOT ? 'dmidecode --version' : undef ), #requires root so I need a non-root replacement
-    'uname --version',
+    #'uname --version',
     'whoami --version',
     'hostname --version',
 );
@@ -193,14 +196,23 @@ my $os = {
 };
 
 sub GetOSInfo {
-    $os->{kernel} = TrimWhite (`uname -s`) . ' ' . TrimWhite (Awk(`uname -r`, $VERSION_MATCH, 1)) . ' ' . TrimWhite (`uname -m`);
+    my $ahandle = OpenFile($FILES->{VERSION});
+    my $buffer = <$ahandle>;
+    close($ahandle);
+
+    $os->{kernel} = Awk($buffer, ' version ', 0) . ' ' . Awk($buffer, $VERSION_MATCH, 1);
     $os->{userhost} = TrimWhite (`whoami`) . '@' . TrimWhite(`hostname`);
+
+    undef $buffer;
+
     my $ahandle = OpenFile($FILES->{LSBR});
     my @buffer = <$ahandle>;
     close($ahandle);
+
     $os->{distro} = Awk((grep(/DISTRIB_ID/, @buffer))[0], '=', 1);
     $os->{distro} =~ s/[Ll]inux//;
     $os->{distro_version} = TrimWhite(Awk((grep(/DISTRIB_RELEASE/, @buffer))[0], '=', 1)) . ' ' . TrimWhite(Awk((grep(/DISTRIB_CODENAME/, @buffer))[0], '=', 1));
+    
     undef @buffer;
 }
 #==========================MEMORY INFORMATION
@@ -223,7 +235,6 @@ sub GetMemInfo {
     my $ahandle = OpenFile($FILES->{MEMINFO});
     my @buffer = <$ahandle>;
     close($ahandle);
-    $DEBUG = 1;
     $memory->{ram_total} = Awk((grep(/MemTotal/, @buffer))[0], $re_number, 1);
 
     $memory->{ram_used} = int( ($memory->{ram_total} - 
@@ -241,7 +252,6 @@ sub GetMemInfo {
         ) / 1024 );
 
     $memory->{swap_total} = int($memory->{swap_total} / 1024);
-    $DEBUG = 0;
     
     #might not keep this ->v
     if($HASROOT) { #get chip info if we have root.
