@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-my $DEBUG = 0; #set to 1 to enable verbose output (needs a switch)
+my $DEBUG = 0;
 use Term::ANSIColor;
 ($DEBUG ? do {use warnings;} : undef);
 ($DEBUG ? do {use strict;} : do {use 5.010;});
@@ -14,7 +14,8 @@ use Term::ANSIColor;
 my $wit_version = '0.35.0';
 my $HASROOT = ($< + $>) ? 0 : 1; # check for root
 my @bins = split /:/, $ENV{PATH}; # get bin directories
-
+my $noshells = 0;
+my $nolangs = 0;
 #colors
 my $bCOLORS256 = 1; #needs a switch or detection
 my $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
@@ -109,6 +110,30 @@ sub TrimWhite { #pass (target text)
 
 sub Startup { #init code here
     print (color 'reset');
+    foreach my $arg (@ARGV) {
+        if($arg =~ /(-v|--version)/){
+            print "What-Is-This (wit) version $wit_version.\n";
+            exit 0;
+        } elsif($arg =~ /(-h|--help)/){
+            print "What-Is-This (wit) version $wit_version.\n";
+            print "Help:\n  wit.pl\t<options>";
+            print "\n\t-v,--version\tdisplay version and exit";
+            print "\n\t-h,--help\tdisplay this help and exit";
+            print "\n\t-d,--debug\tturn on debugging text";
+            print "\n\t-ns,--noshells\tdont display shells";
+            print "\n\t-nl,--nolangs\tdont display scripting languages\n";
+            exit 0;
+        } elsif($arg =~ /(-d|--debug)/){
+            $DEBUG = 1;
+        } elsif($arg =~ /(-nl|--nolangs)/){
+            $nolangs = 1;
+        } elsif($arg =~ /(-ns|--noshells)/){
+            $noshells = 1;
+        } else {
+            print "Invalid option $arg\n";
+            exit 1;
+        }
+    }
 }
 
 sub Cleanup { #clean up here
@@ -122,14 +147,14 @@ my %LISTS = (
         { name => 'zsh', exists => undef, versioncmd => 'zsh --version', version => undef },
         { name => 'mksh', exists => undef, versioncmd => undef, version => undef },
         { name => 'tcsh', exists => undef, versioncmd => 'tcsh --version', version => undef },
-    ],
+    ], 
     scripts => [
         { name => 'lua', exists => undef, versioncmd => 'lua -v', version => undef },
         { name => 'perl', exists => undef, versioncmd => 'perl --version', version => undef },
         { name => 'ruby', exists => undef, versioncmd => 'ruby --version', version => undef },
         { name => 'python3', exists => undef, versioncmd => 'python --version 2>&1', version => undef },
         { name => 'python2', exists => undef, versioncmd => 'python2 --version 2>&1', version => undef },
-    ],
+    ], 
 );
 
 sub PopulateLists {
@@ -285,20 +310,20 @@ sub PrintList {
         }
     }
 }
-
-#needs a switch
-#print "What Is This\n\twit\t\t[$wit_version]\n";
     
 print "${title_color}Operating System-\n";
 print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n";
 
-print "${title_color}Shells-\n\t";
-PrintList($LISTS{shells});
-print "\n";
-
-print "${title_color}Script Langs-\n\t";
-PrintList($LISTS{scripts});
-print "\n";
+if(not $noshells) {
+    print "${title_color}Shells-\n\t";
+    PrintList($LISTS{shells});
+    print "\n";
+}
+if(not $nolangs) {
+    print "${title_color}Script Langs-\n\t";
+    PrintList($LISTS{scripts});
+    print "\n";
+}
 
 print "${title_color}Processor-\n\t";
 print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t${subtitle_color}Details\t${value_color}\t$processor->{cores}-Cores @ $processor->{freq}ghz" . ($processor->{ht} ? " with hyper-threading\n" : "\n");
