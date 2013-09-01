@@ -9,7 +9,6 @@ What-Is-This (or wit) is a simple fast system information script written in perl
  - [x] memory
  - [x] currently installed shells and their versions
  - [x] currently installed interpreters/scripting languages (e.g. lua, perl...)
- - [_] remove any root dependencies
  - [_] add more shells/interpreters
  - [_] add gpu info
  - [_] add mobo info
