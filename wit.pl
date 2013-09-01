@@ -12,7 +12,6 @@ use Term::ANSIColor;
 ###
 #GLOBALS
 my $wit_version = '0.35.0';
-my $HASROOT = ($< + $>) ? 0 : 1; # check for root
 my @bins = split /:/, $ENV{PATH}; # get bin directories
 my $noshells = 0;
 my $nolangs = 0;
@@ -37,7 +36,6 @@ my $FILES = {
     #CMDLINE => '/proc/cmdline', #can pool this for architecture
 };
 my @APPS = (
-    ( $HASROOT ? 'dmidecode --version' : undef ), #requires root so I need a non-root replacement
     #'uname --version',
     'whoami --version',
     'hostname --version',
@@ -265,30 +263,6 @@ sub GetMemInfo {
         ) / 1024 );
 
     $memory->{swap_total} = int($memory->{swap_total} / 1024);
-    
-    #might not keep this ->v
-    if($HASROOT) { #get chip info if we have root.
-        my @dmibuf = `dmidecode --type memory`;
-        my $index = 0;
-
-        $memory->{slots} = Awk(((grep(/Number Of Devices\:\ /, @dmibuf))[0]), '\: ', 1);
-        $memory->{chips} = $memory->{slots} - scalar grep(/No Module Installed/, @dmibuf);
-        while(Awk((grep(/Size/, @dmibuf))[$index], '\: ', 1) =~ /No Module Installed/) { #find first installed module
-            $index++;
-        }
-        $memory->{type} = (grep(/Type\:\ /, @dmibuf))[$index+1];
-        $memory->{type} = Awk($memory->{type}, '\: ', 1);
-        $memory->{type} = TrimWhite($memory->{type});
-
-        $memory->{man} = Awk((grep(/Manufacturer/, @dmibuf))[$index], '\: ', 1);
-        $memory->{man} = TrimWhite($memory->{man});
-
-        $memory->{part} = Awk((grep(/Part Number/, @dmibuf))[$index], '\: ', 1);
-        $memory->{part} = TrimWhite($memory->{part});
-
-        $memory->{speed} = Awk((grep(/Configured Clock Speed/, @dmibuf))[$index], '\: ', 1);
-        $memory->{speed} = (split(/[\s+\n]/, $memory->{speed}))[0];
-    }
 }
 
 #==========================WRITE OUTPUT/MAIN
@@ -329,10 +303,6 @@ print "${title_color}Processor-\n\t";
 print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t${subtitle_color}Details\t${value_color}\t$processor->{cores}-Cores @ $processor->{freq}ghz" . ($processor->{ht} ? " with hyper-threading\n" : "\n");
 
 print "${title_color}Memory-\n";
-if($HASROOT) {
-    print "\t${subtitle_color}Modules\t${value_color}\t$memory->{man} $memory->{part} [$memory->{chips}/$memory->{slots}]\n";
-    print "\t${subtitle_color}Type\t${value_color}\t$memory->{type} @ $memory->{speed}mhz\n" if $memory->{man};
-}
 print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}m\n" if $memory->{ram_total};
 print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}m/$memory->{swap_total}m\n" if $memory->{swap_total};
 
