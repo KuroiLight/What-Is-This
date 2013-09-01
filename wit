@@ -1,7 +1,8 @@
 #!/usr/bin/perl
-use 5.010;
+my $DEBUG = 0; #set to 1 to enable verbose output (needs a switch)
 use Term::ANSIColor;
-#use warnings;
+($DEBUG ? do {use warnings;} : undef);
+($DEBUG ? do {use strict;} : do {use 5.010;});
 
 ###
 #   What Is This (wit)
@@ -9,15 +10,21 @@ use Term::ANSIColor;
 #   MIT License
 #   Written by: Kuroilight@openmailbox.org
 ###
-my $wit_version = '0.25.0';
-my $DEBUG = 0; #set to 1 to enable verbose output (needs a switch)
-my $HASROOT = ($< + $>) ? 0 : 1; #check for root
+#GLOBALS
+my $wit_version = '0.35.0';
+my $HASROOT = ($< + $>) ? 0 : 1; # check for root
+my @bins = split /:/, $ENV{PATH}; # get bin directories
 
-#==========================REGEX
+#colors
+my $bCOLORS256 = 1; #needs a switch or detection
+my $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
+my $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'cyan');
+my $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
+#regex
 my $LEADING_TRAILING_WHITESPACE = qr/(^(\s+|\n)|(\s+|\n)$)/;
 my $VERSION_MATCH = qr/([0-9]+\.[0-9]+\.?[0-9]+?)/;
 
-#==========================DEPENDENCIES
+#depend
 my $FILES = {
     SHELLS => '/etc/shells',
     MEMINFO => '/proc/meminfo',
@@ -27,7 +34,6 @@ my $FILES = {
     LSBR => '/etc/lsb-release',
     VERSION => '/proc/version',
     #CMDLINE => '/proc/cmdline', #can pool this for architecture
-
 };
 my @APPS = (
     ( $HASROOT ? 'dmidecode --version' : undef ), #requires root so I need a non-root replacement
@@ -36,12 +42,6 @@ my @APPS = (
     'hostname --version',
 );
 #==========================
-my $bCOLORS256 = 1; #needs a switch or detection
-
-my $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
-my $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'cyan');
-my $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
-
 sub Requires {
     print "$^O hmmm... \nprobably not going to work on your system, will try anyways...\n" if (not $^O =~ /linux/); #not sure if it matters
 
@@ -54,17 +54,25 @@ sub Requires {
             }
         } if $value;
     }
+
     for my $elem(@APPS) {
-        do {
-            `$elem`;
-            if($?) {
-                print "Missing command '$elem'...\n";
-                $missing += 1;
+        next if (not $elem);
+        my $cmd = (split / /, $elem)[0];
+        $found = 0;
+        foreach my $bin (@bins) {
+            if(-e "$bin/$cmd") {
+                $found = 1;
+                last;
             }
-        } if $elem;
+        }
+        if(not $found) {
+            $missing++;
+            print "Missing command '$cmd'...\n";
+        }
     }
+
     if ($missing) {
-        print "$missing dependencie${( $missing > 1 ? 's' : '')} not found... exiting.\n";
+        print "$missing dependencie(s)... exiting.\n";
         exit 1;
     }
 }
@@ -92,7 +100,7 @@ sub Awk { #pass (target text, pattern, index) if target is `command` or <file> u
     $result = ( split /$pattern/, $target )[$index];
     $result = TrimWhite($result) if $result;
     print "\nreturned " . ($result ? "'$result'" : 'undef') . "\n" if $DEBUG;
-    return $result;
+    return $result; 
 }
 
 sub TrimWhite { #pass (target text)
@@ -106,29 +114,36 @@ sub Startup { #init code here
 sub Cleanup { #clean up here
     print (color 'reset');
 }
-
-#==========================SHELL INFORMATION
-my @shells = ( 
-    # name is a regex pattern, 
-    # versioncmd is the shell command to get version information,
-    # path and version must be undef and 'unknown' respectively;
-    { name => 'bash', path => undef, versioncmd => 'bash --version', version => undef },
-    { name => 'fish', path => undef, versioncmd => 'fish --version 2>&1', version => undef },
-    { name => 'zsh', path => undef, versioncmd => 'zsh --version', version => undef },
-    { name => 'mksh', path => undef, versioncmd => undef, version => undef },
-    { name => 'tcsh', path => undef, versioncmd => 'tcsh --version', version => undef }
+#==========================PROGRAM LISTS
+my %LISTS = (
+    shells => [
+        { name => 'bash', exists => undef, versioncmd => 'bash --version', version => undef },
+        { name => 'fish', exists => undef, versioncmd => 'fish --version 2>&1', version => undef },
+        { name => 'zsh', exists => undef, versioncmd => 'zsh --version', version => undef },
+        { name => 'mksh', exists => undef, versioncmd => undef, version => undef },
+        { name => 'tcsh', exists => undef, versioncmd => 'tcsh --version', version => undef },
+    ],
+    scripts => [
+        { name => 'lua', exists => undef, versioncmd => 'lua -v', version => undef },
+        { name => 'perl', exists => undef, versioncmd => 'perl --version', version => undef },
+        { name => 'ruby', exists => undef, versioncmd => 'ruby --version', version => undef },
+        { name => 'python3', exists => undef, versioncmd => 'python --version 2>&1', version => undef },
+        { name => 'python2', exists => undef, versioncmd => 'python2 --version 2>&1', version => undef },
+    ],
 );
 
-sub GetShellInfo {
-    if(my $handle = OpenFile($FILES->{SHELLS})) {
-        my @buffer = <$handle>; close $handle;
-        foreach my $elem(@shells) {
-            $elem->{path} = (grep(/$elem->{name}/, @buffer))[0]; 
-            $elem->{path} = TrimWhite($elem->{path}) if $elem->{path};
-            #bug if versioncmd == undef
-            $elem->{version} = Awk(scalar `$elem->{versioncmd}`, $VERSION_MATCH, 1) if $elem->{path};
+sub PopulateLists {
+    foreach my $vals (keys %LISTS) {
+        foreach my $elem ( @{$LISTS{$vals}}) {
+            foreach my $bin (@bins) {
+                if(-e "$bin/$elem->{name}") {
+                    $elem->{exists} = 1;
+                    $elem->{name} = ucfirst $elem->{name};
+                    $elem->{version} = ($elem->{versioncmd} ? Awk(scalar `$elem->{versioncmd}`, $VERSION_MATCH, 1) : 'unknown');
+                    last;
+                }
+            }
         }
-        undef @buffer;
     }
 }
 #==========================CPU INFORMATION
@@ -145,11 +160,11 @@ sub GetCPUInfo {
     my @buffer = <$ahandle>;
     close($ahandle);
     if(@buffer) {
-        $processor->{vendor} = Awk((grep(/vendor_id/, @buffer))[0], ': ', 1);
-        $processor->{name} = Awk((grep(/model name/, @buffer))[0], ': ', 1);
-        $processor->{cores} = Awk((grep(/cpu cores/, @buffer))[0], ': ', 1);
-        do {$processor->{ht} = 1; $processor->{cores} /= 2; } if(Awk((grep(/siblings/, @buffer))[0], ': ', 1) == ($processor->{cores} * 2));
-        if(my $handle = OpenFile($FILES->{BIOSLIMIT})) {
+        $processor->{vendor} = Awk((grep(/vendor_id/, @buffer))[0], ': ', 1); #grab vendor name
+        $processor->{name} = Awk((grep(/model name/, @buffer))[0], ': ', 1); #model name
+        $processor->{cores} = Awk((grep(/cpu cores/, @buffer))[0], ': ', 1); #core count
+        do {$processor->{ht} = 1; $processor->{cores} /= 2; } if(Awk((grep(/siblings/, @buffer))[0], ': ', 1) == ($processor->{cores} * 2)); #check for hyperthreading
+        if(my $handle = OpenFile($FILES->{BIOSLIMIT})) { #get clock freq
             print "[DBG] fetching freq from bios_limit...\n" if $DEBUG;
             $processor->{freq} = (scalar <$handle>) / (1000**2);
             close($handle);
@@ -159,33 +174,6 @@ sub GetCPUInfo {
         $processor->{freq} = sprintf('%0.2f', $processor->{freq});
     }
     undef @buffer;
-}
-#==========================SCRIPTING LANGUAGES
-my @bin_locations = (
-    '/bin/', '/usr/bin/', '/usr/local/bin/', '/usr/sbin/'
-); #I know there are others will add later though probably not needed.
-
-my @script_langs = ( 
-    { name => 'Lua', path => undef, versioncmd => 'lua -v', version => undef },
-    { name => 'Perl', path => undef, versioncmd => 'perl --version', version => undef },
-    { name => 'Ruby', path => undef, versioncmd => 'ruby --version', version => undef },
-    { name => 'Python3', path => undef, versioncmd => 'python --version 2>&1', version => undef },
-    { name => 'Python2', path => undef, versioncmd => 'python2 --version 2>&1', version => undef },
-);
-
-sub GetSLInfo {
-    foreach my $elem(@script_langs) {
-        BINS:foreach my $loc(@bin_locations) {
-            print "Checking if $elem->{name} exists at $loc$elem->{name}..." if $DEBUG;
-            if(-e lc "$loc$elem->{name}") {
-                print "Does.\n" if $DEBUG;
-                $elem->{path} = "$loc$elem->{name}";
-                last BINS;
-            }
-            print "Does not.\n" if $DEBUG;
-        }
-        $elem->{version} = Awk(scalar `$elem->{versioncmd}`, $VERSION_MATCH, 1) if $elem->{path};
-    }
 }
 #==========================OPERATING SYSTEM
 my $os = {
@@ -282,49 +270,45 @@ sub GetMemInfo {
 Requires();
 Startup();
 
-GetShellInfo();
-GetSLInfo();
+PopulateLists();
 GetCPUInfo();
 GetMemInfo();
 GetOSInfo();
 
+sub PrintList {
+    my $list = $_[0]; my $count = 0;
+    foreach my $elem (@{$list}) {
+        if($elem->{exists}) {
+            print "\n\t" if $count++;
+            print "${subtitle_color}$elem->{name}\t\t";
+            print "${value_color}[$elem->{version}]";
+        }
+    }
+}
+
 #needs a switch
 #print "What Is This\n\twit\t\t[$wit_version]\n";
     
-    print "${title_color}Operating System-\n";
-    print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n";
+print "${title_color}Operating System-\n";
+print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n";
 
-    my $mshells = 0;
-    print "${title_color}Shells-\n\t";
-    foreach my $elem(@shells) {
-        $mshells++;
-        do {
-            print "\n\t" if $mshells > 1;
-            print( ${subtitle_color}, ucfirst((split(/\//, $elem->{path}))[-1]), ${value_color}, "\t\t[$elem->{version}]")
-        } if $elem->{path};
-    } print "\n";
+print "${title_color}Shells-\n\t";
+PrintList($LISTS{shells});
+print "\n";
 
-    my $mlangs = 0;
-    print "${title_color}Interpreters-\n\t";
-    foreach my $elem(@script_langs) {
-        $mlangs++;
-        do {
-            print "\n\t" if $mlangs > 1;
-            print "${subtitle_color}$elem->{name}\t\t${value_color}[$elem->{version}]"
-        } if $elem->{path};
-    } print "\n";
+print "${title_color}Script Langs-\n\t";
+PrintList($LISTS{scripts});
+print "\n";
 
-    print "${title_color}Processor-\n\t";
-    print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t${subtitle_color}Details\t${value_color}\t$processor->{cores}-Cores @ $processor->{freq}ghz" . ($processor->{ht} ? " with hyper-threading\n" : "\n");
+print "${title_color}Processor-\n\t";
+print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t${subtitle_color}Details\t${value_color}\t$processor->{cores}-Cores @ $processor->{freq}ghz" . ($processor->{ht} ? " with hyper-threading\n" : "\n");
 
+print "${title_color}Memory-\n";
+if($HASROOT) {
+    print "\t${subtitle_color}Modules\t${value_color}\t$memory->{man} $memory->{part} [$memory->{chips}/$memory->{slots}]\n";
+    print "\t${subtitle_color}Type\t${value_color}\t$memory->{type} @ $memory->{speed}mhz\n" if $memory->{man};
+}
+print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}m\n" if $memory->{ram_total};
+print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}m/$memory->{swap_total}m\n" if $memory->{swap_total};
 
-    print "${title_color}Memory-\n";
-    if($HASROOT) {
-        print "\t${subtitle_color}Modules\t${value_color}\t$memory->{man} $memory->{part} [$memory->{chips}/$memory->{slots}]\n";
-        print "\t${subtitle_color}Type\t${value_color}\t$memory->{type} @ $memory->{speed}mhz\n" if $memory->{man};
-    }
-    print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}m\n" if $memory->{ram_total};
-    print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}m/$memory->{swap_total}m\n" if $memory->{swap_total};
-
-    
-    Cleanup();
+Cleanup();
