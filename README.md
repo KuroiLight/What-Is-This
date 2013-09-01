@@ -1,14 +1,11 @@
 What-Is-This
 ============
 What-Is-This (or wit) is a simple fast system information script written in perl, for linux.
-```
-License: MIT
-Email: kuroilight @ openmailbox.org
-```
 
- feature/todo progress
+### Feature Progress
+
  - [x] distro and kernel
- - [x] processor
+ - [x] processora
  - [x] memory
  - [x] currently installed shells and their versions
  - [x] currently installed interpreters/scripting languages (e.g. lua, perl...)
@@ -19,3 +16,9 @@ Email: kuroilight @ openmailbox.org
  - [x] add proper cmd line switches
  - [_] add terminal color detection
  - [_] add package counting
+
+
+```
+License: MIT
+Email: kuroilight @ openmailbox.org
+```
