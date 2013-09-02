@@ -15,7 +15,7 @@ What-Is-This (or wit) is a simple fast system information script written in perl
  - [x] add proper cmd line switches
  - [_] add terminal color detection
  - [x] add package counting
- - [_] make os detection more protable
+ - [_] make os detection more portable
 
 
 ```

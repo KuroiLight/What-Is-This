@@ -325,7 +325,7 @@ if(not $nolangs) {
 print "${title_color}Processor-\n\t";
 print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t" if ($processor->{vendor});
 print "${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t" if ($processor->{name});
-print "${subtitle_color}Details\t${value_color}\t"
+print "${subtitle_color}Details\t${value_color}\t";
 print "$processor->{cores}-Cores" if ($processor->{cores});
 print " @ $processor->{freq}ghz" if ($processor->{freq});
 print ($processor->{ht} ? " with hyper-threading\n" : "\n");
