@@ -5,7 +5,7 @@ What-Is-This (or wit) is a simple fast system information script written in perl
 ### Feature Progress
 
  - [x] distro and kernel
- - [x] processora
+ - [x] processor
  - [x] memory
  - [x] currently installed shells and their versions
  - [x] currently installed interpreters/scripting languages (e.g. lua, perl...)
@@ -14,7 +14,8 @@ What-Is-This (or wit) is a simple fast system information script written in perl
  - [_] add mobo info
  - [x] add proper cmd line switches
  - [_] add terminal color detection
- - [_] add package counting
+ - [x] add package counting
+ - [_] make os detection more protable
 
 
 ```

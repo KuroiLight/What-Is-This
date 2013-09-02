@@ -57,14 +57,8 @@ sub Requires {
     for my $elem(@APPS) {
         next if (not $elem);
         my $cmd = (split / /, $elem)[0];
-        $found = 0;
-        foreach my $bin (@bins) {
-            if(-e "$bin/$cmd") {
-                $found = 1;
-                last;
-            }
-        }
-        if(not $found) {
+        
+        if(not CommandExists($cmd)) {
             $missing++;
             print "Missing command '$cmd'...\n";
         }
@@ -74,6 +68,17 @@ sub Requires {
         print "$missing dependencie(s)... exiting.\n";
         exit 1;
     }
+}
+
+sub CommandExists {
+    my $found = 0; my $cmd = $_[0];
+    foreach my $bin (@bins) {
+        if(-e "$bin/$cmd") {
+            $found = 1;
+            last;
+        }
+    }
+    return $found;
 }
 
 sub OpenFile { 
@@ -204,6 +209,7 @@ my $os = {
     kernel => undef,
     distro => undef,
     distro_version => undef,
+    package_count => undef,
 };
 
 sub GetOSInfo {
@@ -225,6 +231,20 @@ sub GetOSInfo {
     $os->{distro_version} = TrimWhite(Awk((grep(/DISTRIB_RELEASE/, @buffer))[0], '=', 1)) . ' ' . TrimWhite(Awk((grep(/DISTRIB_CODENAME/, @buffer))[0], '=', 1));
     
     undef @buffer;
+    my @packages = 0;
+    if(CommandExists('pacman')) { #Good ol' Arch
+        @packages = (`pacman -Qq`);
+    } elsif (-e -d '/var/log/packages') { #Debian
+        @packages = (`ls -1 /var/log/packages`);
+    } elsif(-e -d '/var/db/pkg/') { #Gentoo
+        @packages = (`ls -d /var/db/pkg/*/*`);
+    } elsif(CommandExists('rpm')) { #Suse/RedHat
+        @packages = (`rpm -qa`);
+    } elsif(CommandExists('pkg_info')) { #BSD
+        @packages = (`pkg_info`);
+    }
+    $os->{package_count} = scalar @packages;
+    undef @packages;
 }
 #==========================MEMORY INFORMATION
 my $memory = {
@@ -286,7 +306,10 @@ sub PrintList {
 }
     
 print "${title_color}Operating System-\n";
-print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n";
+print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n";
+print "${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n";
+print "${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n";
+print "${subtitle_color}\tPackages\t${value_color}$os->{package_count}\n" if $os->{package_count};
 
 if(not $noshells) {
     print "${title_color}Shells-\n\t";
