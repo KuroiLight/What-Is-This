@@ -306,9 +306,9 @@ sub PrintList {
 }
     
 print "${title_color}Operating System-\n";
-print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n";
-print "${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n";
-print "${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n";
+print "${subtitle_color}\tDistro\t\t${value_color}$os->{distro} $os->{distro_version}\n" if ($os->{distro});
+print "${subtitle_color}\tKernel\t\t${value_color}$os->{kernel}\n" if ($os->{kernel});
+print "${subtitle_color}\tUser\@Host\t${value_color}$os->{userhost}\n"  if ($os->{userhost});
 print "${subtitle_color}\tPackages\t${value_color}$os->{package_count}\n" if $os->{package_count};
 
 if(not $noshells) {
@@ -323,7 +323,12 @@ if(not $nolangs) {
 }
 
 print "${title_color}Processor-\n\t";
-print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t${subtitle_color}Details\t${value_color}\t$processor->{cores}-Cores @ $processor->{freq}ghz" . ($processor->{ht} ? " with hyper-threading\n" : "\n");
+print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t" if ($processor->{vendor});
+print "${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t" if ($processor->{name});
+print "${subtitle_color}Details\t${value_color}\t"
+print "$processor->{cores}-Cores" if ($processor->{cores});
+print " @ $processor->{freq}ghz" if ($processor->{freq});
+print ($processor->{ht} ? " with hyper-threading\n" : "\n");
 
 print "${title_color}Memory-\n";
 print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}m\n" if $memory->{ram_total};
