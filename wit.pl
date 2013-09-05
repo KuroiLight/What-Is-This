@@ -92,23 +92,13 @@ sub OpenFile {
     return undef;
 }
 
-#this sub feels like awk, which is the reason for the name, may change later
-sub Awk { #pass (target text, pattern, index) if target is `command` or <file> use scalar.
-    my $target = $_[0]; my $result; my $pattern = $_[1]; my $index = $_[2];
-    if ($DEBUG) {
-        print ("[DBG] Awk($target, $pattern, $index);\n[DBG] possible matches ");
-        foreach my $elem(split($pattern, $target)) {
-            print "$elem | ";
-        }
+sub FirstMatch { #pass (target string, pattern with grouping)
+    my $target = $_[0]; my $pattern = $_[1];
+    if($target =~ $pattern) {
+        return $1;
+    } else {
+        return undef;
     }
-    $result = ( split /$pattern/, $target )[$index];
-    $result = TrimWhite($result) if $result;
-    print "\nreturned " . ($result ? "'$result'" : 'undef') . "\n" if $DEBUG;
-    return $result; 
-}
-
-sub TrimWhite { #pass (target text)
-    return (split($LEADING_TRAILING_WHITESPACE, $_[0]))[0];
 }
 
 sub Startup { #init code here
@@ -167,7 +157,7 @@ sub PopulateLists {
                 if(-e "$bin/$elem->{name}") {
                     $elem->{exists} = 1;
                     $elem->{name} = ucfirst $elem->{name};
-                    $elem->{version} = ($elem->{versioncmd} ? Awk(scalar `$elem->{versioncmd}`, $VERSION_MATCH, 1) : 'unknown');
+                    $elem->{version} = ((scalar `$elem->{versioncmd}`) =~ $VERSION_MATCH ? $1 : 'unknown');
                     last;
                 }
             }
@@ -183,25 +173,34 @@ my $processor = {
     freq => undef,
 };
 
+my $re_cpu = qr/[\t\:\ ]+(.+)[\W]+/;
+
 sub GetCPUInfo {
-    my $ahandle = OpenFile($FILES->{CPUINFO});
-    my @buffer = <$ahandle>;
-    close($ahandle);
-    if(@buffer) {
-        $processor->{vendor} = Awk((grep(/vendor_id/, @buffer))[0], ': ', 1); #grab vendor name
-        $processor->{name} = Awk((grep(/model name/, @buffer))[0], ': ', 1); #model name
-        $processor->{cores} = Awk((grep(/cpu cores/, @buffer))[0], ': ', 1); #core count
-        do {$processor->{ht} = 1; $processor->{cores} /= 2; } if(Awk((grep(/siblings/, @buffer))[0], ': ', 1) == ($processor->{cores} * 2)); #check for hyperthreading
-        if(my $handle = OpenFile($FILES->{BIOSLIMIT})) { #get clock freq
-            print "[DBG] fetching freq from bios_limit...\n" if $DEBUG;
-            $processor->{freq} = (scalar <$handle>) / (1000**2);
-            close($handle);
-        } else {
-            $processor->{freq} = Awk((grep(/cpu MHz/, @buffer))[0], ': ', 1) / 1000;
+    my $buffer = do {
+        local $/ = undef;
+        my $handle = OpenFile($FILES->{CPUINFO});
+        <$handle>;
+    };
+    if($buffer) {
+        $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/im); # $1 if(($buffer =~ qr/vendor_id$re_cpu/im));
+        $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/im);
+        $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/im);
+        {
+            my $siblings = ($buffer =~ qr/cpu cores$re_cpu/im ? $1 : $processor->{cores});
+            $processor->{ht} = (($processor->{cores} * 2 == $siblings) ? 1 : 0);
         }
+        #v- this can probably be rewritten, adding to TODO -v#
+        #if(my $handle = OpenFile($FILES->{BIOSLIMIT})) { #get clock freq
+            #    print "[DBG] fetching freq from bios_limit...\n" if $DEBUG;
+            #    $processor->{freq} = (scalar <$handle>) / (1000**2);
+            #    close($handle);
+            #} else {
+            $processor->{freq} =  FirstMatch($buffer, qr/cpu MHz$re_cpu/im) / 1000;# Awk((grep(/cpu MHz/, @buffer))[0], ': ', 1) / 1000;
+            #}
         $processor->{freq} = sprintf('%0.2f', $processor->{freq});
+        #-^
     }
-    undef @buffer;
+    undef $buffer;
 }
 #==========================OPERATING SYSTEM
 my $os = {
@@ -212,25 +211,28 @@ my $os = {
     package_count => undef,
 };
 
+my $re_distro = qr/([\w\.\ ]+)[^\n]?/im;
+
 sub GetOSInfo {
-    my $ahandle = OpenFile($FILES->{VERSION});
-    my $buffer = <$ahandle>;
-    close($ahandle);
+    my $buffer = do {
+        local $/ = undef;
+        my $handle = OpenFile($FILES->{VERSION});
+        <$handle>;
+    };
+    $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $VERSION_MATCH/im);
+    $os->{userhost} = FirstMatch(`whoami`, qr/([A-Za-z0-9\.\_\-\ ]+)/);
 
-    $os->{kernel} = Awk($buffer, ' version ', 0) . ' ' . Awk($buffer, $VERSION_MATCH, 1);
-    $os->{userhost} = TrimWhite (`whoami`) . '@' . TrimWhite(`hostname`);
+    $buffer = do {
+        local $/ = undef;
+        my $handle = OpenFile($FILES->{LSBR});
+        <$handle>;
+    };
 
-    undef $buffer;
-
-    my $ahandle = OpenFile($FILES->{LSBR});
-    my @buffer = <$ahandle>;
-    close($ahandle);
-
-    $os->{distro} = Awk((grep(/DISTRIB_ID/, @buffer))[0], '=', 1);
-    $os->{distro} =~ s/[Ll]inux//;
-    $os->{distro_version} = TrimWhite(Awk((grep(/DISTRIB_RELEASE/, @buffer))[0], '=', 1)) . ' ' . TrimWhite(Awk((grep(/DISTRIB_CODENAME/, @buffer))[0], '=', 1));
+    $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_distro/im);
+    $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_distro/im)
+                            . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_distro/im);
     
-    undef @buffer;
+    undef $buffer;
     my @packages = 0;
     if(CommandExists('pacman')) { #Good ol' Arch
         @packages = (`pacman -Qq`);
@@ -260,28 +262,30 @@ my $memory = {
     type => undef,
 };
 
-my $re_number = qr/([0-9]+)/;
+my $re_number = qr/[\s]+([\d]+)/;
 
 sub GetMemInfo {
-    my $ahandle = OpenFile($FILES->{MEMINFO});
-    my @buffer = <$ahandle>;
-    close($ahandle);
-    $memory->{ram_total} = Awk((grep(/MemTotal/, @buffer))[0], $re_number, 1);
+    my $buffer = do {
+        local $/ = undef;
+        my $handle = OpenFile($FILES->{MEMINFO});
+        <$handle>;
+    };
 
-    $memory->{ram_used} = int( ($memory->{ram_total} - 
-            (Awk((grep(/Buffers/, @buffer))[0], $re_number, 1)
-            + Awk((grep(/Cached/, @buffer))[0], $re_number, 1)
-            + Awk((grep(/MemFree/, @buffer))[0], $re_number, 1))
-        ) / 1024 );
-    
+    $memory->{ram_total} = FirstMatch($buffer, qr/MemTotal:[\s]+([\d]+)/im);
+    {
+        my $buffers = FirstMatch($buffer, qr/Buffers:$re_number/im);
+        my $cached = FirstMatch($buffer, qr/Cached:$re_number/im);
+        my $memfree = FirstMatch($buffer, qr/MemFree:$re_number/im);
+        $memory->{ram_used} =int(($memory->{ram_total} - ($buffers + $cached + $memfree)) / 1024);
+    }
     $memory->{ram_total} = int($memory->{ram_total} / 1024);
 
-    $memory->{swap_total} = Awk((grep(/SwapTotal/, @buffer))[0], $re_number, 1);
-    $memory->{swap_used} = int(($memory->{swap_total}
-        - (Awk((grep(/SwapFree/, @buffer))[0], $re_number, 1)
-        + Awk((grep(/SwapCached/, @buffer))[0], $re_number, 1))
-        ) / 1024 );
-
+    $memory->{swap_total} = FirstMatch($buffer, qr/SwapTotal:$re_number/im); #Awk((grep(/SwapTotal/, @buffer))[0], $re_number, 1);
+    {
+        my $cached = FirstMatch($buffer, qr/SwapCached:$re_number/im);
+        my $swapfree = FirstMatch($buffer, qr/SwapFree:$re_number/im);
+        $memory->{swap_used} = int( ($memory->{swap_total} - ($swapfree + $cached)) / 1024);
+    }
     $memory->{swap_total} = int($memory->{swap_total} / 1024);
 }
 
@@ -325,13 +329,15 @@ if(not $nolangs) {
 print "${title_color}Processor-\n\t";
 print "${subtitle_color}Vendor\t${value_color}\t$processor->{vendor}\n\t" if ($processor->{vendor});
 print "${subtitle_color}Model\t${value_color}\t$processor->{name}\n\t" if ($processor->{name});
-print "${subtitle_color}Details\t${value_color}\t";
-print "$processor->{cores}-Cores" if ($processor->{cores});
-print " @ $processor->{freq}ghz" if ($processor->{freq});
-print ($processor->{ht} ? " with hyper-threading\n" : "\n");
+do {
+    print "${subtitle_color}Details\t${value_color}\t";
+    print "$processor->{cores}-Cores " if ($processor->{cores});
+    print "\@$processor->{freq}GHz " if ($processor->{freq});
+    print ($processor->{ht} ? "HyperThreaded\n" : "\n");
+} if( ($processor->{cores} or $processor->{freq} or $processor->{ht}) );
 
 print "${title_color}Memory-\n";
-print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}m\n" if $memory->{ram_total};
-print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}m/$memory->{swap_total}m\n" if $memory->{swap_total};
+print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}M\n" if $memory->{ram_total};
+print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}m/$memory->{swap_total}M\n" if $memory->{swap_total};
 
 Cleanup();
