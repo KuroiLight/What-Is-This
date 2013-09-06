@@ -1,15 +1,14 @@
 What-Is-This
 ============
-What-Is-This (or wit) is a simple fast system information script written in perl, for linux.
+**What-Is-This (or wit) is a simple fast system information script written in perl, for linux.**
 
-sample screenshot-
+*sample screenshot-*
 
 ![alt tag](https://raw.github.com/KuroiLight/What-Is-This/master/latest_screenshot.png)
 
-It is very much a work in progress, needs bug reports and portability testing.
+It is very much a work in progress, and needs bug reports and portability testing.
 
-### Feature Progress
-
+##### Feature Progress
  - [x] distro and kernel
  - [x] processor
  - [x] memory
@@ -23,8 +22,14 @@ It is very much a work in progress, needs bug reports and portability testing.
  - [x] add package counting
  - [_] make os detection more portable
 
+##### Requirements
+ - some sysfs files
+ - linux flavored procfs
+ - whoami and hostname
+
 
 ```
 License: MIT
 Email: kuroilight @ openmailbox.org
 ```
+
