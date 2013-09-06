@@ -21,39 +21,32 @@ my $bCOLORS256 = 1; #needs a switch or detection
 my $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
 my $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'cyan');
 my $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
-#regex
-#my $LEADING_TRAILING_WHITESPACE = qr/(^(\s+|\n)|(\s+|\n)$)/;
-my $VERSION_MATCH = qr/([0-9]+\.[0-9]+\.?[0-9]+?)/;
 
 #depend
 my $FILES = {
-    #SHELLS => '/etc/shells',
     MEMINFO => '/proc/meminfo',
     CPUINFO => '/proc/cpuinfo',
-    #BIOSLIMIT => '/sys/devices/system/cpu/cpu0/cpufreq/bios_limit',
-    #DMIID => '/sys/class/dmi/id/', #not yet needed
+    DMIID => '/sys/class/dmi/id/',
     LSBR => '/etc/lsb-release',
     VERSION => '/proc/version',
-    #CMDLINE => '/proc/cmdline', #can pool this for architecture
 };
 my @APPS = (
-    #'uname --version',
-    'whoami --version',
-    'hostname --version',
+    'whoami',
+    'hostname',
 );
 #==========================
 sub Requires {
     print "$^O hmmm... \nprobably not going to work on your system, will try anyways...\n" if (not $^O =~ /linux/); #not sure if it matters
 
     my $missing = 0;
-#    for my $value(values $FILES) {
-#        do {
-#            if(not -e -r $value){
-#                print "Missing file '$value'...\n";
-#                $missing += 1;
-#            }
-#        } if $value;
-#    }
+    for my $value(values $FILES) {
+        do {
+            if(not -e -r $value){
+                print "Missing file '$value'...\n";
+                $missing += 1;
+            }
+        } if $value;
+    }
 
     for my $elem(@APPS) {
         next if (not $elem);
@@ -163,6 +156,8 @@ my %LISTS = (
     ], 
 );
 
+my $re_versionmatch = qr/([0-9]+\.[0-9]+\.?[0-9]+?)/;
+
 #disk bottle neck at |-e "$bin/$r"|
 
 sub PopulateLists {
@@ -171,7 +166,7 @@ sub PopulateLists {
             foreach my $bin (@bins) {
                 my $r = (split(' ', $elem->{versioncmd}))[0];
                 if($r and -e "$bin/$r") {
-                    $elem->{version} = ((scalar `$elem->{versioncmd}`) =~ $VERSION_MATCH ? $1 : undef);
+                    $elem->{version} = ((scalar `$elem->{versioncmd}`) =~ $re_versionmatch ? $1 : undef);
                     last;
                 }
             }
@@ -249,7 +244,7 @@ my $re_distro = qr/([\w\.\ ]+)[^\n]?/m;
 sub GetOSInfo {
     my $buffer = ReadFile($FILES->{VERSION});
     if($buffer) {
-        $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $VERSION_MATCH/im);
+        $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_versionmatch/im);
         undef $buffer;
     }
     $os->{userhost} = FirstMatch(`whoami`, qr/([A-Za-z0-9\.\_\-\ ]+)/);
