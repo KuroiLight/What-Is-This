@@ -2,6 +2,8 @@ What-Is-This
 ============
 What-Is-This (or wit) is a simple fast system information script written in perl, for linux.
 
+Very much a work in progress, needs bug reports and portability testing.
+
 ### Feature Progress
 
  - [x] distro and kernel
@@ -9,9 +11,9 @@ What-Is-This (or wit) is a simple fast system information script written in perl
  - [x] memory
  - [x] currently installed shells and their versions
  - [x] currently installed interpreters/scripting languages (e.g. lua, perl...)
- - [_] add more shells/interpreters
+ - [/] add more shells/interpreters
  - [_] add gpu info
- - [_] add mobo info
+ - [X] add mobo info
  - [x] add proper cmd line switches
  - [_] add terminal color detection
  - [x] add package counting
