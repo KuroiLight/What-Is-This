@@ -235,9 +235,6 @@ sub GetMoboInfo {
         undef $buffer;
     }
 }
-
-
-
 #==========================OPERATING SYSTEM
 my $os = {
     userhost => undef,

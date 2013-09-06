@@ -2,7 +2,9 @@ What-Is-This
 ============
 What-Is-This (or wit) is a simple fast system information script written in perl, for linux.
 
-Very much a work in progress, needs bug reports and portability testing.
+![alt tag](https://github.com/KuroiLight/What-Is-This/blob/master/latest_screenshot.png)
+
+It is very much a work in progress, needs bug reports and portability testing.
 
 ### Feature Progress
 
