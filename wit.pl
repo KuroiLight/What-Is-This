@@ -137,8 +137,8 @@ my %LISTS = (
     shells => [
         { name => 'Bash', versioncmd => 'bash --version', version => undef },
         { name => 'Fish', versioncmd => 'fish --version 2>&1', version => undef },
-        #{ name => 'mksh', versioncmd => '', version => undef }, #need suggestions
-        { name => 'TCSH', versioncmd => 'tcsh --version', version => undef },
+        { name => 'Mksh', versioncmd => '', version => undef }, # <- need suggestions for this
+        { name => 'Tcsh', versioncmd => 'tcsh --version', version => undef },
         { name => 'Zsh', versioncmd => 'zsh --version', version => undef },
     ], 
     scripts => [
@@ -187,14 +187,14 @@ my $re_cpu = qr/[\t\:\ ]+(.+)[\W]+/;
 sub GetCPUInfo {
     my $buffer = ReadFile($FILES->{CPUINFO});
     if($buffer) {
-        $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m); # $1 if(($buffer =~ qr/vendor_id$re_cpu/im));
+        $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
         $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/m);
         {
             my $siblings = ($buffer =~ qr/cpu cores$re_cpu/m ? $1 : $processor->{cores});
             $processor->{ht} = (($processor->{cores} * 2 == $siblings) ? 1 : 0);
         }
-        $processor->{freq} =  FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;# Awk((grep(/cpu MHz/, @buffer))[0], ': ', 1) / 1000;
+        $processor->{freq} =  FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;
         $processor->{freq} = sprintf('%0.2f', $processor->{freq});
         undef $buffer;
     }
@@ -310,16 +310,6 @@ sub GetMemInfo {
     }
 }
 
-#==========================WRITE OUTPUT/MAIN
-Requires();
-Startup();
-
-PopulateLists();
-GetCPUInfo();
-GetMemInfo();
-GetOSInfo();
-GetMoboInfo();
-
 sub PrintEntry {
     if($_[1]) {
         print "\t${subtitle_color}${_[0]}\t" . ((length($_[0]) >= 8) ? '' : "\t") . "${value_color}${_[1]}\n";
@@ -342,6 +332,15 @@ sub HasContents {
     }
     return $count;
 }
+#==========================WRITE OUTPUT/MAIN
+Requires();
+Startup();
+
+PopulateLists();
+GetCPUInfo();
+GetMemInfo();
+GetOSInfo();
+GetMoboInfo();
 
 if(HasContents($os)) {
     print "${title_color}Operating System-\n";
