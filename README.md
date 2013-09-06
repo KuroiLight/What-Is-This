@@ -23,6 +23,7 @@ It is very much a work in progress, and needs bug reports and portability testin
  - [_] make os detection more portable
 
 ##### Requirements
+ - perl5 obviously (tested version 5.10>)
  - some sysfs files
  - linux flavored procfs
  - whoami and hostname
