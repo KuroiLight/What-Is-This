@@ -11,7 +11,7 @@ use Term::ANSIColor;
 #   Written by: Kuroilight@openmailbox.org
 ###
 #GLOBALS
-my $wit_version = '0.40.0';
+my $wit_version = '0.41.1';
 my @bins = split /:/, $ENV{PATH}; # get bin directories
 my $noshells = 0;
 my $nolangs = 0;
@@ -183,16 +183,18 @@ my $processor = {
 };
 
 my $re_cpu = qr/[\t\:\ ]+(.+)[\W]+/;
+my $re_remove_ghz = qr/\ \@.+/;
 
 sub GetCPUInfo {
     my $buffer = ReadFile($FILES->{CPUINFO});
     if($buffer) {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
+        $processor->{name} = (split(/$re_remove_ghz/, $processor->{name}))[0]; #remove intels ghz ending (temporary fix)
         $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/m);
         {
-            my $siblings = ($buffer =~ qr/cpu cores$re_cpu/m ? $1 : $processor->{cores});
-            $processor->{ht} = (($processor->{cores} * 2 == $siblings) ? 1 : 0);
+            my $siblings = ($buffer =~ qr/siblings$re_cpu/m ? $1 : $processor->{cores});
+            $processor->{ht} = ($processor->{cores} * 2 == $siblings);
         }
         $processor->{freq} =  FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;
         $processor->{freq} = sprintf('%0.2f', $processor->{freq});
@@ -248,6 +250,10 @@ sub GetOSInfo {
         undef $buffer;
     }
     $os->{userhost} = FirstMatch(`whoami`, qr/([A-Za-z0-9\.\_\-\ ]+)/);
+    {
+        my $host_name = FirstMatch(`hostname`, qr/([A-Za-z0-9\.\_\-\ ]+)/);
+        $os->{userhost} .= ($host_name ? "\@$host_name" : '');
+    }
 
     $buffer = ReadFile($FILES->{LSBR});
     if($buffer) {
@@ -370,8 +376,8 @@ if(not $nohardware) {
         PrintEntry('Model', $processor->{name});
         PrintEntry('Details', 
             ($processor->{cores} ? "$processor->{cores}-Cores " : undef)
-            . ($processor->{freq} ? "@ $processor->{freq}GHz " : udnef) 
-            . ($processor->{ht} ? $processor->{ht} : '')
+            . ($processor->{freq} ? "@ $processor->{freq}GHz " : undef) 
+            . ($processor->{ht} ? 'with hyperthreading' : '')
         );
     }
     if(HasContents($memory)) {
