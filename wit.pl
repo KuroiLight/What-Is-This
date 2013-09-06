@@ -11,7 +11,7 @@ use Term::ANSIColor;
 #   Written by: Kuroilight@openmailbox.org
 ###
 #GLOBALS
-my $wit_version = '0.35.0';
+my $wit_version = '0.40.0';
 my @bins = split /:/, $ENV{PATH}; # get bin directories
 my $noshells = 0;
 my $nolangs = 0;
@@ -147,6 +147,7 @@ my %LISTS = (
         { name => 'ruby', exists => undef, versioncmd => 'ruby --version', version => undef },
         { name => 'python3', exists => undef, versioncmd => 'python --version 2>&1', version => undef },
         { name => 'python2', exists => undef, versioncmd => 'python2 --version 2>&1', version => undef },
+        { name => 'neko', exists => undef, versioncmd => 'neko', version => undef },
     ], 
 );
 
@@ -337,7 +338,7 @@ do {
 } if( ($processor->{cores} or $processor->{freq} or $processor->{ht}) );
 
 print "${title_color}Memory-\n";
-print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}m/$memory->{ram_total}M\n" if $memory->{ram_total};
-print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}m/$memory->{swap_total}M\n" if $memory->{swap_total};
+print "\t${subtitle_color}Ram\t${value_color}\t$memory->{ram_used}M/$memory->{ram_total}M\n" if $memory->{ram_total};
+print "\t${subtitle_color}Swap\t${value_color}\t$memory->{swap_used}M/$memory->{swap_total}M\n" if $memory->{swap_total};
 
 Cleanup();
