@@ -148,7 +148,7 @@ my %LISTS = (
         { name => 'python3', exists => undef, versioncmd => 'python --version 2>&1', version => undef },
         { name => 'python2', exists => undef, versioncmd => 'python2 --version 2>&1', version => undef },
         { name => 'neko', exists => undef, versioncmd => 'neko', version => undef },
-        { name => 'haxe', exists => undef, versioncmd => 'haxe', version => undef },
+        { name => 'haxe', exists => undef, versioncmd => 'haxe -version 2>&1', version => undef },
     ], 
 );
 
