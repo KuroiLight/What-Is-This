@@ -1,15 +1,14 @@
 #!/usr/bin/perl
+###
+#   What Is This (wit)
+#   Simple Fast System Information
+#   This file and its accompanying files are Licensed under the MIT License
+#   Written by: Kuroilight@openmailbox.org
+###
 my $DEBUG = 0;
 use Term::ANSIColor;
 ($DEBUG ? do {use warnings;} : undef);
 ($DEBUG ? do {use strict;} : do {use 5.010;});
-
-###
-#   What Is This (wit)
-#   Simple Fast System Information
-#   MIT License
-#   Written by: Kuroilight@openmailbox.org
-###
 #GLOBALS
 my $wit_version = '0.41.1';
 my @bins = split /:/, $ENV{PATH}; # get bin directories
@@ -36,8 +35,6 @@ my @APPS = (
 );
 #==========================
 sub Requires {
-    print "$^O hmmm... \nprobably not going to work on your system, will try anyways...\n" if (not $^O =~ /linux/); #not sure if it matters
-
     my $missing = 0;
     for my $value(values $FILES) {
         do {
@@ -51,7 +48,6 @@ sub Requires {
     for my $elem(@APPS) {
         next if (not $elem);
         my $cmd = (split / /, $elem)[0];
-        
         if(not CommandExists($cmd)) {
             $missing++;
             print "Missing command '$cmd'...\n";
@@ -77,10 +73,8 @@ sub CommandExists {
 
 sub OpenFile { 
     my $filename = $_[0]; my $filehandle;
-    print "[DBG] openning file $filename..." if $DEBUG;
     if(-e -r $filename) {
         open($filehandle, '<', $filename);
-        print "openned.\n" if $DEBUG;
         return $filehandle;
     }
     return undef;
@@ -110,7 +104,7 @@ sub Startup { #init code here
             print "Help:\n  wit.pl\t<options>";
             print "\n\t-v,--version\tdisplay version and exit";
             print "\n\t-h,--help\tdisplay this help and exit";
-            print "\n\t-d,--debug\tturn on debugging text";
+            #print "\n\t-d,--debug\tturn on debugging text";
             print "\n\t-ns,--noshells\tdont display shells";
             print "\n\t-nl,--nolangs\tdont display scripting languages\n";
             exit 0;
