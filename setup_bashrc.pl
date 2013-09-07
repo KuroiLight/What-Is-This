@@ -2,6 +2,7 @@
 
 use Cwd qw/ abs_path /;
 use autodie;
+use File::Copy qw/ copy /;
 
 my $ISROOT = (($> + $<) ? 0 : 1);
 
@@ -51,6 +52,7 @@ sub Install {
         print "Exiting...\n";
         exit 0;
     }
+    copy ($bashrc, ($bashrc . '.BACKUP'));
     open my $hbash, ">>", $bashrc or die $!;
     $hbash->print($wit_path);
     close $hbash;
@@ -69,7 +71,7 @@ sub Uninstall {
         close $hbash;
         open my $hbash, ">", $bashrc or die $!;
         foreach my $line (@file_contents) {
-            if($line =~ "($wit_path|^wit$)") {
+            if($line =~ /($wit_path|^wit$)/) {
                 print "found in bashrc and removed..\n";
             } else {
                 $hbash->print($line);
