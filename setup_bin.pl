@@ -24,12 +24,11 @@ my $wit_path = abs_path('') . '/wit.pl';
 foreach my $arg (@ARGV) {
     if($arg =~ qr/u/i) {
         $uninstall = 1;
-    }
-    if($arg =~ qr/i/i) {
+    } elsif ($arg =~ qr/i/i) {
         $install = 1;
-    }
-    if($arg =~ qr/h/i) {
+    } elsif ($arg =~ qr/h/i) {
         print "help";
+        print "This script will symlink wit.pl to /usr/bin/wit.\n This must be run as root.\n";
         print "\n\t-u\t uninstall from bin directory";
         print "\n\t-i\t install link to bin directory";
         print "\n\t-h\t display this help";
