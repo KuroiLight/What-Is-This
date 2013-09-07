@@ -26,7 +26,7 @@ foreach my $arg (@ARGV) {
         print "This script will symlink wit.pl to /usr/bin/wit.\n This must be run as root.";
         print "\n\t-u\t uninstall from bin directory";
         print "\n\t-i\t install link to bin directory";
-        print "\n\t-h\t display this help";
+        print "\n\t-h\t display this help\n";
         exit 0;
     }
 }
