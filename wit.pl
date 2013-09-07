@@ -260,10 +260,12 @@ sub GetOSInfo {
     my @packages = 0;
     if(CommandExists('pacman')) { #Good ol' Arch
         @packages = (`pacman -Qq`);
+    } elsif (CommandExists('dpkg')) { #Ubuntu
+        @packages = (grep (/ii/, `dpkg -l`));
     } elsif (-e -d '/var/log/packages') { #Debian
         @packages = (`ls -1 /var/log/packages`);
     } elsif(-e -d '/var/db/pkg/') { #Gentoo
-        @packages = (`ls -d /var/db/pkg/*/*`);
+        @packages = (`ls -d -1 /var/db/pkg/*/*`);
     } elsif(CommandExists('rpm')) { #Suse/RedHat
         @packages = (`rpm -qa`);
     } elsif(CommandExists('pkg_info')) { #BSD
