@@ -5,12 +5,15 @@
 #   This file and its accompanying files are Licensed under the MIT License.
 #   Written by: Kuroilight@openmailbox.org
 ###
-my $DEBUG = 1;
+my $DEBUG = 0;
 use Term::ANSIColor;
-($DEBUG ? do {use warnings;} : undef);
-($DEBUG ? do {use strict;} : do {use 5.010;});
+use autodie;
+use warnings;
+use diagnostics;
+
+use 5.012;
 #GLOBALS
-my $wit_version = '0.41.2';
+my $wit_version = '0.41.3';
 my @bins = split /:/, $ENV{PATH}; # get bin directories
 my $noshells = 0;
 my $nolangs = 0;
@@ -27,7 +30,6 @@ my $FILES = {
     MEMINFO => '/proc/meminfo',
     CPUINFO => '/proc/cpuinfo',
     DMIID => '/sys/class/dmi/id/',
-    LSBR => '/etc/lsb-release',
     VERSION => '/proc/version',
 };
 my @APPS = (
@@ -37,7 +39,7 @@ my @APPS = (
 #==========================
 sub Requires {
     my $missing = 0;
-    for my $value(values $FILES) {
+    for my $value(values %$FILES) {
         do {
             if(not -e -r $value){
                 print "Missing file '$value'...\n";
@@ -85,7 +87,7 @@ sub ReadFile {
     return do {
         local $/ = undef;
         my $handle = OpenFile($_[0]);
-        <$handle>;
+        return scalar <$handle>;
     };
 }
 
@@ -181,7 +183,7 @@ my $re_cpu = qr/[\t\:\ ]+(.+)[\W]+/;
 my $re_remove_ghz = qr/\ \@.+/;
 
 sub GetCPUInfo {
-    my $buffer = ReadFile($FILES->{CPUINFO});
+    my $buffer = ReadFile($$FILES{CPUINFO});
     if($buffer) {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
@@ -239,7 +241,7 @@ my $os = {
 my $re_distro = qr/([\w\.\ ]+)[^\n]?/m;
 
 sub GetOSInfo {
-    my $buffer = ReadFile($FILES->{VERSION});
+    my $buffer = ReadFile($$FILES{VERSION});
     if($buffer) {
         $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_versionmatch/im);
         undef $buffer;
@@ -250,11 +252,19 @@ sub GetOSInfo {
         $os->{userhost} .= ($host_name ? "\@$host_name" : '');
     }
 
-    $buffer = ReadFile($FILES->{LSBR});
-    if($buffer) {
-        $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_distro/m);
-        $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_distro/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_distro/m);
-        undef $buffer;
+    if(-e '/etc/lsb-release' or -e '/etc/os-release') {
+        $buffer = ((-e '/etc/lsb-release') ? ReadFile('/etc/lsb-release') : ReadFile('/etc/os-release'));
+        if($buffer) {
+            $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_distro/m);
+            $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_distro/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_distro/m);
+            undef $buffer;
+        }
+    } else {
+        my $matching_file = $1 if (grep(/([\w]+-release)$/, `ls -1 /etc/*-release`))[0] =~ qr/(.+)/;
+        if(-e -r $matching_file) {
+            $os->{distro} = ReadFile($matching_file);
+            $os->{distro} =~ s/[\n]+//;
+        }
     }
     
     my @packages = 0;
@@ -291,7 +301,7 @@ my $memory = {
 my $re_number = qr/[\s]+([\d]+)/;
 
 sub GetMemInfo {
-    my $buffer = ReadFile($FILES->{MEMINFO});
+    my $buffer = ReadFile($$FILES{MEMINFO});
     if($buffer) {
         $memory->{ram_total} = FirstMatch($buffer, qr/MemTotal:[\s]+([\d]+)/im);
         {
