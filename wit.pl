@@ -5,20 +5,21 @@
 #   This file and its accompanying files are Licensed under the MIT License.
 #   Written by: Kuroilight@openmailbox.org
 ###
-my $DEBUG = 0;
+my $DEBUG = 1;
 use Term::ANSIColor;
 ($DEBUG ? do {use warnings;} : undef);
 ($DEBUG ? do {use strict;} : do {use 5.010;});
 #GLOBALS
-my $wit_version = '0.41.1';
+my $wit_version = '0.41.2';
 my @bins = split /:/, $ENV{PATH}; # get bin directories
 my $noshells = 0;
 my $nolangs = 0;
 my $nohardware = 0;
 #colors
-my $bCOLORS256 = 1; #needs a switch or detection
+my $bCOLORS256 = 1;
+if($] < 5.018) { $bCOLORS256 = 0; } #ansi rgb wasnt available til around 5.18
 my $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
-my $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'cyan');
+my $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'green');
 my $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
 
 #depend
