@@ -2,7 +2,7 @@
 ###
 #   What Is This (wit)
 #   Simple Fast System Information
-#   This file and its accompanying files are Licensed under the MIT License
+#   This file and its accompanying files are Licensed under the MIT License.
 #   Written by: Kuroilight@openmailbox.org
 ###
 my $DEBUG = 0;

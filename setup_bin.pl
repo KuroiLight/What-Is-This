@@ -14,10 +14,6 @@ my $uninstall = 0;
 
 my $ISROOT = (($> + $<) ? 0 : 1);
 
-if(not $ISROOT) {
-    print "Must run this setup as root to install.\n";
-}
-
 my $wit_bin = '/usr/bin/wit';
 my $wit_path = abs_path('') . '/wit.pl';
 
@@ -27,12 +23,16 @@ foreach my $arg (@ARGV) {
     } elsif ($arg =~ qr/i/i) {
         $install = 1;
     } elsif ($arg =~ qr/h/i) {
-        print "help";
-        print "This script will symlink wit.pl to /usr/bin/wit.\n This must be run as root.\n";
+        print "This script will symlink wit.pl to /usr/bin/wit.\n This must be run as root.";
         print "\n\t-u\t uninstall from bin directory";
         print "\n\t-i\t install link to bin directory";
         print "\n\t-h\t display this help";
+        exit 0;
     }
+}
+
+if(not $ISROOT) {
+    print "Must run this setup as root to install.\n";
 }
 
 sub IsInstalled {

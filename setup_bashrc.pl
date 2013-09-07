@@ -25,11 +25,11 @@ foreach my $arg (@ARGV) {
         $install = 1;
         print "Installing...\n";
     } elsif($arg =~ qr/h/i) {
-        print "help";
-        print "This script will add an entry to your bashrc file,\n that will launch wit, at the of a bash shell.\n Do not run this as root.\n";
+        print "This script will add an entry to your bashrc file,\n that will launch wit, at the of a bash shell.\n Do not run this as root.";
         print "\n\t-u\t remove bashrc entry";
         print "\n\t-i\t add bashrc entry";
         print "\n\t-h\t display this help";
+        exit 0;
     }
 }
 
