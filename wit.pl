@@ -8,8 +8,8 @@
 my $DEBUG = 0;
 use Term::ANSIColor;
 use autodie;
-use warnings;
-use diagnostics;
+#use warnings;
+#use diagnostics;
 
 use 5.012;
 #GLOBALS
@@ -19,11 +19,10 @@ my $noshells = 0;
 my $nolangs = 0;
 my $nohardware = 0;
 #colors
-my $bCOLORS256 = 1;
-if($] < 5.018) { $bCOLORS256 = 0; } #ansi rgb wasnt available til around 5.18
-my $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
-my $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'green');
-my $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
+my $bCOLORS256 = ($Term::ANSIColor::VERSION >= 4.00 ? 1 : 0);
+my $title_color;
+my $subtitle_color;
+my $value_color;
 
 #depend
 my $FILES = {
@@ -107,9 +106,10 @@ sub Startup { #init code here
             print "Help:\n  wit.pl\t<options>";
             print "\n\t-v,--version\tdisplay version and exit";
             print "\n\t-h,--help\tdisplay this help and exit";
-            #print "\n\t-d,--debug\tturn on debugging text";
             print "\n\t-ns,--noshells\tdont display shells";
             print "\n\t-nl,--nolangs\tdont display scripting languages\n";
+            print "\n\t-nh,--nohw\tdont display hardware";
+            print "\n\t-na,--no256\tdisable rgb256 coloring";
             exit 0;
         } elsif($arg =~ /(-d|--debug)/){
             $DEBUG = 1;
@@ -119,11 +119,16 @@ sub Startup { #init code here
             $noshells = 1;
         } elsif($arg =~ /(-nh|--nohw)/){
             $nohardware = 1;
+        } elsif($arg =~ /(-na|--no256)/){
+            $bCOLORS256 = 0;
         } else {
             print "Invalid option $arg\n";
             exit 1;
         }
     }
+    $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
+    $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'green');
+    $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
 }
 
 sub Cleanup { #clean up here
@@ -141,21 +146,20 @@ my %LISTS = (
     scripts => [
         { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
         { name => 'HaXe', versioncmd => 'haxe -version 2>&1', version => undef },
-        { name => 'Lua', versioncmd => 'lua -v', version => undef },
+        { name => 'Lua', versioncmd => 'lua -v 2>&1', version => undef },
         { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
         { name => 'Neko', versioncmd => 'neko', version => undef },
-        { name => 'Perl5', versioncmd => 'perl --version', version => undef },
+        { name => 'Perl', versioncmd => 'perl --version', version => undef },
         { name => 'Perl6', versioncmd => 'perl6 -v', version => undef },
-        { name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
-        { name => 'Python3', versioncmd => 'python --version 2>&1', version => undef },
+        #{ name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
+        #{ name => 'Python3', versioncmd => 'python3 --version 2>&1', version => undef },
+        { name => 'Python', versioncmd => 'python --version 2>&1', version => undef },
         { name => 'Ruby', versioncmd => 'ruby --version', version => undef },
         { name => 'Squirrel', versioncmd => 'squirrel -v', version => undef },
     ], 
 );
 
-my $re_versionmatch = qr/([0-9]+\.[0-9]+\.?[0-9]+?)/;
-
-#disk bottle neck at |-e "$bin/$r"|
+my $re_versionmatch = qr/(([\d]+\.){1,2}[\d]+)/;
 
 sub PopulateLists {
     foreach my $vals (keys %LISTS) {
@@ -259,8 +263,8 @@ sub GetOSInfo {
             $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_distro/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_distro/m);
             undef $buffer;
         }
-    } else {
-        my $matching_file = $1 if (grep(/([\w]+-release)$/, `ls -1 /etc/*-release`))[0] =~ qr/(.+)/;
+    } elsif((grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0] =~ qr/(.+)/) {
+        my $matching_file = $1;
         if(-e -r $matching_file) {
             $os->{distro} = ReadFile($matching_file);
             $os->{distro} =~ s/[\n]+//;
@@ -268,11 +272,11 @@ sub GetOSInfo {
     }
     
     my @packages = 0;
-    if(CommandExists('pacman')) { #Good ol' Arch
+    if(CommandExists('pacman')) { #Good ol' Arch (tested)
         @packages = (`pacman -Qq`);
-    } elsif (CommandExists('dpkg')) { #Ubuntu
+    } elsif (CommandExists('dpkg')) { #Ubuntu (tested)
         @packages = (grep (/ii/, `dpkg -l`));
-    } elsif (-e -d '/var/log/packages') { #Debian
+    } elsif (-e -d '/var/log/packages') { #Debian (tested)
         @packages = (`ls -1 /var/log/packages`);
     } elsif(-e -d '/var/db/pkg/') { #Gentoo
         @packages = (`ls -d -1 /var/db/pkg/*/*`);
@@ -357,7 +361,7 @@ GetMoboInfo();
 
 if(HasContents($os)) {
     print "${title_color}Operating System-\n";
-    PrintEntry('Distro', ($os->{distro} ? "$os->{distro} " : undef) . $os->{distro_version});
+    PrintEntry('Distro', ($os->{distro} ? "$os->{distro} " : '') . ($os->{distro_version} ? "$os->{distro_version} " : ''));
     PrintEntry('Kernel', $os->{kernel});
     PrintEntry("User\@Host", $os->{userhost});
     PrintEntry('Packages', $os->{package_count});
