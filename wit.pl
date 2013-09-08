@@ -7,14 +7,26 @@
 ###
 my $DEBUG = 0;
 use Term::ANSIColor;
+use List::Util qw / first /;
+#use File::Find ();
 use autodie;
-#use warnings;
+use warnings;
 #use diagnostics;
 
-use 5.012;
+use 5.012; #lose decent ref support with anything earlier
+
 #GLOBALS
-my $wit_version = '0.41.3';
-my @bins = split /:/, $ENV{PATH}; # get bin directories
+my $wit_version = '0.41.4';
+ # bin directories
+my @bins = (
+'/usr/local/bin',
+'/usr/bin',
+'/bin',
+'/usr/local/sbin',
+'/usr/sbin',
+'/sbin',
+);
+
 my $noshells = 0;
 my $nolangs = 0;
 my $nohardware = 0;
@@ -28,7 +40,6 @@ my $value_color;
 my $FILES = {
     MEMINFO => '/proc/meminfo',
     CPUINFO => '/proc/cpuinfo',
-    DMIID => '/sys/class/dmi/id/',
     VERSION => '/proc/version',
 };
 my @APPS = (
@@ -36,45 +47,16 @@ my @APPS = (
     'hostname',
 );
 #==========================
-sub Requires {
-    my $missing = 0;
-    for my $value(values %$FILES) {
-        do {
-            if(not -e -r $value){
-                print "Missing file '$value'...\n";
-                $missing += 1;
-            }
-        } if $value;
-    }
-
-    for my $elem(@APPS) {
-        next if (not $elem);
-        my $cmd = (split / /, $elem)[0];
-        if(not CommandExists($cmd)) {
-            $missing++;
-            print "Missing command '$cmd'...\n";
-        }
-    }
-
-    if ($missing) {
-        print "$missing dependencie(s)... exiting.\n";
-        exit 1;
-    }
-}
-
-sub CommandExists {
-    my $found = 0; my $cmd = $_[0];
+sub CommandExists ($) { #pass (cmd)
+    my $cmd = shift;
     foreach my $bin (@bins) {
-        if(-e "$bin/$cmd") {
-            $found = 1;
-            last;
-        }
+        return 1 if(-e "$bin/$cmd");
     }
-    return $found;
+    return 0;
 }
 
-sub OpenFile { 
-    my $filename = $_[0]; my $filehandle;
+sub OpenFile ($) { #pass (file)
+    my $filename = shift; my $filehandle;
     if(-e -r $filename) {
         open($filehandle, '<', $filename);
         return $filehandle;
@@ -82,16 +64,15 @@ sub OpenFile {
     return undef;
 }
 
-sub ReadFile {
+sub ReadFile ($) { #pass (file)
     return do {
         local $/ = undef;
-        my $handle = OpenFile($_[0]);
+        my $handle = OpenFile(shift);
         return scalar <$handle>;
     };
 }
 
-
-sub FirstMatch { #pass (target string, pattern with grouping)
+sub FirstMatch ($$) { #pass (target string, pattern with grouping)
     return ($_[0] =~ $_[1] ? $1 : undef);
 }
 
@@ -151,15 +132,15 @@ my %LISTS = (
         { name => 'Neko', versioncmd => 'neko', version => undef },
         { name => 'Perl', versioncmd => 'perl --version', version => undef },
         { name => 'Perl6', versioncmd => 'perl6 -v', version => undef },
-        #{ name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
-        #{ name => 'Python3', versioncmd => 'python3 --version 2>&1', version => undef },
-        { name => 'Python', versioncmd => 'python --version 2>&1', version => undef },
+        { name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
+        { name => 'Python3', versioncmd => 'python3 --version 2>&1', version => undef },
+        #{ name => 'Python', versioncmd => 'python --version 2>&1', version => undef },
         { name => 'Ruby', versioncmd => 'ruby --version', version => undef },
         { name => 'Squirrel', versioncmd => 'squirrel -v', version => undef },
     ], 
 );
 
-my $re_versionmatch = qr/(([\d]+\.){1,2}[\d]+)/;
+my $re_versionmatch = eval { qr/(([\d]+\.){1,2}[\d]+)/ };
 
 sub PopulateLists {
     foreach my $vals (keys %LISTS) {
@@ -167,7 +148,7 @@ sub PopulateLists {
             foreach my $bin (@bins) {
                 my $r = (split(' ', $elem->{versioncmd}))[0];
                 if($r and -e "$bin/$r") {
-                    $elem->{version} = ((scalar `$elem->{versioncmd}`) =~ $re_versionmatch ? $1 : undef);
+                    $elem->{version} = $1 if ((scalar `$elem->{versioncmd}`) =~ $re_versionmatch);
                     last;
                 }
             }
@@ -183,15 +164,15 @@ my $processor = {
     freq => undef,
 };
 
-my $re_cpu = qr/[\t\:\ ]+(.+)[\W]+/;
-my $re_remove_ghz = qr/\ \@.+/;
+my $re_cpu = eval { qr/[\t\:\ ]+(.+)[\W]+/ };
+my $re_intelghz = eval { qr/\ \@.+/ }; #[\d\.\ GHz]
 
 sub GetCPUInfo {
     my $buffer = ReadFile($$FILES{CPUINFO});
     if($buffer) {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
-        $processor->{name} = (split(/$re_remove_ghz/, $processor->{name}))[0]; #remove intels ghz ending (temporary fix)
+        $processor->{name} =~ s/$re_intelghz//; #split is probably faster, but replace is cleaner.
         $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/m);
         {
             my $siblings = ($buffer =~ qr/siblings$re_cpu/m ? $1 : $processor->{cores});
@@ -209,7 +190,7 @@ my $motherboard = {
     bios => undef,
 };
 
-my $re_anyword = qr/([\w\.\ \_\-]+)/;
+my $re_anyword = eval { qr/(.+)/ }; #[\w\.\ \_\-]
 
 sub GetMoboInfo {
     my $buffer = ReadFile('/sys/class/dmi/id/board_vendor');
@@ -242,7 +223,7 @@ my $os = {
     package_count => undef,
 };
 
-my $re_distro = qr/([\w\.\ ]+)[^\n]?/m;
+#my $re_distro = eval { qr/(.+)/m }; #[\w\.\ ]+)[^\n]?
 
 sub GetOSInfo {
     my $buffer = ReadFile($$FILES{VERSION});
@@ -250,36 +231,36 @@ sub GetOSInfo {
         $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_versionmatch/im);
         undef $buffer;
     }
-    $os->{userhost} = FirstMatch(`whoami`, qr/([A-Za-z0-9\.\_\-\ ]+)/);
-    {
-        my $host_name = FirstMatch(`hostname`, qr/([A-Za-z0-9\.\_\-\ ]+)/);
+    $os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommandExists('whoami'));
+    do {
+        my $host_name = FirstMatch(`hostname`, $re_anyword);
         $os->{userhost} .= ($host_name ? "\@$host_name" : '');
-    }
+    } if (CommandExists('hostname'));
 
     if(-e '/etc/lsb-release' or -e '/etc/os-release') {
         $buffer = ((-e '/etc/lsb-release') ? ReadFile('/etc/lsb-release') : ReadFile('/etc/os-release'));
         if($buffer) {
-            $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_distro/m);
-            $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_distro/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_distro/m);
+            $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_anyword/m);
+            $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_anyword/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_anyword/m);
             undef $buffer;
         }
-    } elsif((grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0] =~ qr/(.+)/) {
+    } elsif((grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0] =~ $re_anyword) {
         my $matching_file = $1;
         if(-e -r $matching_file) {
             $os->{distro} = ReadFile($matching_file);
-            $os->{distro} =~ s/[\n]+//;
+            $os->{distro} =~ s/[\n]*//;
         }
     }
     
     my @packages = 0;
     if(CommandExists('pacman')) { #Good ol' Arch (tested)
         @packages = (`pacman -Qq`);
+    } elsif(-e -d '/var/db/pkg/') { #Gentoo
+        @packages = (`ls -d -1 /var/db/pkg/*/*`);
     } elsif (CommandExists('dpkg')) { #Ubuntu (tested)
         @packages = (grep (/ii/, `dpkg -l`));
     } elsif (-e -d '/var/log/packages') { #Debian (tested)
         @packages = (`ls -1 /var/log/packages`);
-    } elsif(-e -d '/var/db/pkg/') { #Gentoo
-        @packages = (`ls -d -1 /var/db/pkg/*/*`);
     } elsif(CommandExists('rpm')) { #Suse/RedHat
         @packages = (`rpm -qa`);
     } elsif(CommandExists('pkg_info')) { #BSD
@@ -290,24 +271,18 @@ sub GetOSInfo {
 }
 #==========================MEMORY INFORMATION
 my $memory = {
-    man => undef,
-    part => undef,
-    speed => undef,
     ram_used => undef,
     ram_total => undef,
     swap_used => undef,
     swap_total => undef,
-    slots => undef,
-    chips => undef,
-    type => undef,
 };
 
-my $re_number = qr/[\s]+([\d]+)/;
+my $re_number = eval { qr/\s*([\d]+)/ };
 
 sub GetMemInfo {
     my $buffer = ReadFile($$FILES{MEMINFO});
     if($buffer) {
-        $memory->{ram_total} = FirstMatch($buffer, qr/MemTotal:[\s]+([\d]+)/im);
+        $memory->{ram_total} = FirstMatch($buffer, qr/MemTotal:$re_number/im);
         {
             my $buffers = FirstMatch($buffer, qr/Buffers:$re_number/im);
             my $cached = FirstMatch($buffer, qr/Cached:$re_number/im);
@@ -326,14 +301,14 @@ sub GetMemInfo {
         undef $buffer;
     }
 }
-
-sub PrintEntry {
+#==========================
+sub PrintEntry ($$) {
     if($_[1]) {
         print "\t${subtitle_color}${_[0]}\t" . ((length($_[0]) >= 8) ? '' : "\t") . "${value_color}${_[1]}\n";
     }
 }
 
-sub PrintList {
+sub PrintList ($) {
     my $list = $_[0]; my $count = 0;
     foreach my $elem (@{$list}) {
         if($elem->{version}) {
@@ -342,7 +317,7 @@ sub PrintList {
     }
 }
 
-sub HasContents {
+sub HasContents ($) {
     my $count = 0;
     foreach my $elem (values %{$_[0]}) {
         if($elem) { $count++; }
@@ -350,7 +325,6 @@ sub HasContents {
     return $count;
 }
 #==========================WRITE OUTPUT/MAIN
-Requires();
 Startup();
 
 PopulateLists();
@@ -387,7 +361,7 @@ if(not $nohardware) {
         PrintEntry('Model', $processor->{name});
         PrintEntry('Details', 
             ($processor->{cores} ? "$processor->{cores}-Cores " : undef)
-            . ($processor->{freq} ? "@ $processor->{freq}GHz " : undef) 
+            . ($processor->{freq} ? "@ $processor->{freq}GHz " : undef)
             . ($processor->{ht} ? 'with hyperthreading' : '')
         );
     }
