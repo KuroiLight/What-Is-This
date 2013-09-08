@@ -43,9 +43,8 @@ my @APPS = (
 );
 #==========================
 sub CommandExists ($) { #pass (cmd)
-    my $cmd = $_[0];
     foreach my $bin (@bins) {
-        return 1 if(-e "$bin$cmd");
+        return 1 if(-e "$bin$_[0]");
     }
     return 0;
 }
@@ -63,7 +62,7 @@ sub ReadFile ($) { #pass (file)
     return do {
         local $/ = undef;
         my $handle = OpenFile($_[0]);
-        return scalar <$handle>;
+        return ($handle ? scalar <$handle> : undef);
     };
 }
 
