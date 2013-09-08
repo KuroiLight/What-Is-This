@@ -5,28 +5,23 @@
 #   This file and its accompanying files are Licensed under the MIT License.
 #   Written by: Kuroilight@openmailbox.org
 ###
-my $DEBUG = 0;
 use Term::ANSIColor;
-use List::Util qw / first /;
-#use File::Find ();
-use autodie;
-use warnings;
+use utf8;
+#use warnings;
 #use diagnostics;
-
-use 5.012; #lose decent ref support with anything earlier
 
 #GLOBALS
 my $wit_version = '0.41.4';
  # bin directories
 my @bins = (
-'/usr/local/bin',
-'/usr/bin',
-'/bin',
-'/usr/local/sbin',
-'/usr/sbin',
-'/sbin',
+'/usr/local/bin/',
+'/usr/bin/',
+'/bin/',
+'/usr/local/sbin/',
+'/usr/sbin/',
+'/sbin/',
 );
-
+print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12" if ($] < 5.012);
 my $noshells = 0;
 my $nolangs = 0;
 my $nohardware = 0;
@@ -48,17 +43,17 @@ my @APPS = (
 );
 #==========================
 sub CommandExists ($) { #pass (cmd)
-    my $cmd = shift;
+    my $cmd = $_[0];
     foreach my $bin (@bins) {
-        return 1 if(-e "$bin/$cmd");
+        return 1 if(-e "$bin$cmd");
     }
     return 0;
 }
 
 sub OpenFile ($) { #pass (file)
-    my $filename = shift; my $filehandle;
+    my $filename = $_[0]; my $filehandle;
     if(-e -r $filename) {
-        open($filehandle, '<', $filename);
+        open($filehandle, '<', $filename) or return undef;
         return $filehandle;
     }
     return undef;
@@ -67,7 +62,7 @@ sub OpenFile ($) { #pass (file)
 sub ReadFile ($) { #pass (file)
     return do {
         local $/ = undef;
-        my $handle = OpenFile(shift);
+        my $handle = OpenFile($_[0]);
         return scalar <$handle>;
     };
 }
@@ -92,8 +87,6 @@ sub Startup { #init code here
             print "\n\t-nh,--nohw\tdont display hardware";
             print "\n\t-na,--no256\tdisable rgb256 coloring";
             exit 0;
-        } elsif($arg =~ /(-d|--debug)/){
-            $DEBUG = 1;
         } elsif($arg =~ /(-nl|--nolangs)/){
             $nolangs = 1;
         } elsif($arg =~ /(-ns|--noshells)/){
@@ -134,7 +127,6 @@ my %LISTS = (
         { name => 'Perl6', versioncmd => 'perl6 -v', version => undef },
         { name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
         { name => 'Python3', versioncmd => 'python3 --version 2>&1', version => undef },
-        #{ name => 'Python', versioncmd => 'python --version 2>&1', version => undef },
         { name => 'Ruby', versioncmd => 'ruby --version', version => undef },
         { name => 'Squirrel', versioncmd => 'squirrel -v', version => undef },
     ], 
@@ -142,15 +134,11 @@ my %LISTS = (
 
 my $re_versionmatch = eval { qr/(([\d]+\.){1,2}[\d]+)/ };
 
-sub PopulateLists {
+sub PopulateLists { #very sharp loop :P
     foreach my $vals (keys %LISTS) {
         foreach my $elem ( @{$LISTS{$vals}}) {
-            foreach my $bin (@bins) {
-                my $r = (split(' ', $elem->{versioncmd}))[0];
-                if($r and -e "$bin/$r") {
-                    $elem->{version} = $1 if ((scalar `$elem->{versioncmd}`) =~ $re_versionmatch);
-                    last;
-                }
+            if(($elem->{versioncmd} =~ qr/([\w]+)\ ?/) and CommandExists($1)) {
+                $elem->{version} = $1 if ((scalar `$elem->{versioncmd}`) =~ $re_versionmatch);
             }
         }
     }
