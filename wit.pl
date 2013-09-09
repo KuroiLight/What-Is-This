@@ -31,16 +31,6 @@ my $title_color;
 my $subtitle_color;
 my $value_color;
 
-#depend
-my $FILES = {
-    MEMINFO => '/proc/meminfo',
-    CPUINFO => '/proc/cpuinfo',
-    VERSION => '/proc/version',
-};
-my @APPS = (
-    'whoami',
-    'hostname',
-);
 #==========================
 sub CommandExists ($) { #pass (cmd)
     foreach my $bin (@bins) {
@@ -152,10 +142,10 @@ my $processor = {
 };
 
 my $re_cpu = eval { qr/[\t\:\ ]+(.+)[\W]+/ };
-my $re_intelghz = eval { qr/\ \@.+/ }; #[\d\.\ GHz]
+my $re_intelghz = eval { qr/\ \@.+/ };
 
 sub GetCPUInfo {
-    my $buffer = ReadFile($$FILES{CPUINFO});
+    my $buffer = ReadFile('/proc/cpuinfo');
     if($buffer) {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
@@ -177,7 +167,7 @@ my $motherboard = {
     bios => undef,
 };
 
-my $re_anyword = eval { qr/(.+)/ }; #[\w\.\ \_\-]
+my $re_anyword = eval { qr/(.+)/ };
 
 sub GetMoboInfo {
     my $buffer = ReadFile('/sys/class/dmi/id/board_vendor');
@@ -210,10 +200,8 @@ my $os = {
     package_count => undef,
 };
 
-#my $re_distro = eval { qr/(.+)/m }; #[\w\.\ ]+)[^\n]?
-
 sub GetOSInfo {
-    my $buffer = ReadFile($$FILES{VERSION});
+    my $buffer = ReadFile('/proc/version');
     if($buffer) {
         $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_versionmatch/im);
         undef $buffer;
@@ -267,7 +255,7 @@ my $memory = {
 my $re_number = eval { qr/\s*([\d]+)/ };
 
 sub GetMemInfo {
-    my $buffer = ReadFile($$FILES{MEMINFO});
+    my $buffer = ReadFile('/proc/meminfo');
     if($buffer) {
         $memory->{ram_total} = FirstMatch($buffer, qr/MemTotal:$re_number/im);
         {
