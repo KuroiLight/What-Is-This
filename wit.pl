@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-use warnings;
+#use warnings;
 #use diagnostics;
 ###
 #   What Is This (wit) 
@@ -12,7 +12,10 @@ eval {
     Term::ANSIColor->import();
 };
 my $nocolor = 1 if($@);
-use utf8;
+eval {
+    require utf8;
+    utf8->import();
+};
 #GLOBALS
 my $wit_version = '0.41.6';
  # bin directories
@@ -144,6 +147,7 @@ sub PopulateLists { #very sharp loop :P
     }
 }
 #==========================CPU INFORMATION
+#fix plural for single cores
 my $processor = {
     vendor => undef,
     name => undef,
@@ -161,9 +165,9 @@ sub GetCPUInfo {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
         $processor->{name} =~ s/$re_intelghz//;
-        $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/m);
+        $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/m) or 1;
         {
-            my $siblings = ($buffer =~ qr/siblings$re_cpu/m ? $1 : $processor->{cores});
+            my $siblings = ($buffer =~ qr/siblings$re_cpu/m ? $1 : $processor->{cores}) or 1;
             $processor->{ht} = ($processor->{cores} * 2 == $siblings);
         }
         $processor->{freq} =  FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;
@@ -287,6 +291,7 @@ sub GetMemInfo {
     }
 }
 #==========================GPU INFORMATION (requires glxinfo atm) キタ!!
+#bug when missing if.pm
 no if $] >= 5.017011, warnings => 'experimental::smartmatch'; #Whyyyyyyy!!! (╯°□°）╯︵ ┻━┻
 
 my $gpu = {
