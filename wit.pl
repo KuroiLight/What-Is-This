@@ -1,17 +1,20 @@
 #!/usr/bin/perl
+use warnings;
+#use diagnostics;
 ###
-#   What Is This (wit)
+#   What Is This (wit) 
 #   Simple Fast System Information
 #   This file and its accompanying files are Licensed under the MIT License.
 #   Written by: Kuroilight@openmailbox.org
 ###
-use Term::ANSIColor;
+eval {
+    require Term::ANSIColor;
+    Term::ANSIColor->import();
+};
+my $nocolor = 1 if($@);
 use utf8;
-#use warnings;
-#use diagnostics;
-
 #GLOBALS
-my $wit_version = '0.41.4';
+my $wit_version = '0.41.6';
  # bin directories
 my @bins = (
 '/usr/local/bin/',
@@ -25,11 +28,12 @@ print "You should upgrade perl, as you'll probably have problems running this sc
 my $noshells = 0;
 my $nolangs = 0;
 my $nohardware = 0;
+my $flying_tables = 0;
 #colors
-my $bCOLORS256 = ($Term::ANSIColor::VERSION >= 4.00 ? 1 : 0);
-my $title_color;
-my $subtitle_color;
-my $value_color;
+my $bCOLORS256 = 1;
+my $title_color = '';
+my $subtitle_color = '';
+my $value_color = '';
 
 #==========================
 sub CommandExists ($) { #pass (cmd)
@@ -61,7 +65,6 @@ sub FirstMatch ($$) { #pass (target string, pattern with grouping)
 }
 
 sub Startup { #init code here
-    print (color 'reset');
     foreach my $arg (@ARGV) {
         if($arg =~ /(-v|--version)/){
             print "What-Is-This (wit) version $wit_version.\n";
@@ -71,10 +74,11 @@ sub Startup { #init code here
             print "Help:\n  wit.pl\t<options>";
             print "\n\t-v,--version\tdisplay version and exit";
             print "\n\t-h,--help\tdisplay this help and exit";
+            print "\n\t-ex,--experimental\tenable experimental features";
             print "\n\t-ns,--noshells\tdont display shells";
-            print "\n\t-nl,--nolangs\tdont display scripting languages\n";
+            print "\n\t-nl,--nolangs\tdont display scripting languages";
             print "\n\t-nh,--nohw\tdont display hardware";
-            print "\n\t-na,--no256\tdisable rgb256 coloring";
+            print "\n\t-na,--no256\tdisable rgb256 coloring\n";
             exit 0;
         } elsif($arg =~ /(-nl|--nolangs)/){
             $nolangs = 1;
@@ -84,18 +88,25 @@ sub Startup { #init code here
             $nohardware = 1;
         } elsif($arg =~ /(-na|--no256)/){
             $bCOLORS256 = 0;
+        } elsif($arg =~ /(-ex|--experimental)/) {
+            $flying_tables = 1;
         } else {
             print "Invalid option $arg\n";
             exit 1;
         }
     }
-    $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
-    $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'green');
-    $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
+    if(not $nocolor) {
+        $bCOLORS256 = ($Term::ANSIColor::VERSION >= 4.00 ? $bCOLORS256 : 0);
+        $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
+        $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'green');
+        $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
+    }
 }
 
 sub Cleanup { #clean up here
-    print (color 'reset');
+    unless ($nocolor) {
+        print (color('reset'));
+    }
 }
 #==========================PROGRAM LISTS
 my %LISTS = (
@@ -149,7 +160,7 @@ sub GetCPUInfo {
     if($buffer) {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
-        $processor->{name} =~ s/$re_intelghz//; #split is probably faster, but replace is cleaner.
+        $processor->{name} =~ s/$re_intelghz//;
         $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/m);
         {
             my $siblings = ($buffer =~ qr/siblings$re_cpu/m ? $1 : $processor->{cores});
@@ -212,8 +223,7 @@ sub GetOSInfo {
         $os->{userhost} .= ($host_name ? "\@$host_name" : '');
     } if (CommandExists('hostname'));
 
-    if(-e '/etc/lsb-release' or -e '/etc/os-release') {
-        $buffer = ((-e '/etc/lsb-release') ? ReadFile('/etc/lsb-release') : ReadFile('/etc/os-release'));
+    if(($buffer = (ReadFile('/etc/lsb-release') or ReadFile('/etc/os-release')) )) {
         if($buffer) {
             $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_anyword/m);
             $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_anyword/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_anyword/m);
@@ -276,6 +286,45 @@ sub GetMemInfo {
         undef $buffer;
     }
 }
+#==========================GPU INFORMATION (requires glxinfo atm) キタ!!
+no if $] >= 5.017011, warnings => 'experimental::smartmatch'; #Whyyyyyyy!!! (╯°□°）╯︵ ┻━┻
+
+my $gpu = {
+    vendor => undef,
+    card => undef,
+    driver => undef,
+};
+
+my @driver_patterns = ( #needs proper patterns...(*￣m￣)
+    qr/X($re_versionmatch-$re_versionmatch)/i,
+    qr/(mesa $re_versionmatch)/i,
+    qr/(nvidia $re_versionmatch)/i,
+    qr/$re_versionmatch/,
+);
+
+#glxinfo is very slow...（￣□￣；）
+#may have to ask something else for gpu info instead... (>_<)
+sub tableflip {
+    if($flying_tables and CommandExists('glxinfo')) {
+        my @glx_data = `glxinfo`;
+
+        $gpu->{vendor} = (grep(/OpenGL vendor string/, @glx_data))[0];
+        $gpu->{vendor} = $1 if($gpu->{vendor} =~ qr/\:\ ([\w\ ]+)/);
+
+        $gpu->{driver} = ((grep(/OpenGL core profile version string/, @glx_data))[0] or (grep(/OpenGL version string/, @glx_data))[0]);
+        if($gpu->{driver}) {
+            $gpu->{driver} = $1 if ($gpu->{driver} ~~ @driver_patterns); #Will need to be replaced. (╯°□°）╯︵ ┻━┻
+        }
+
+        $gpu->{card} = (grep(/OpenGL renderer string/, @glx_data))[0];
+        if($gpu->{card}) {
+            $gpu->{card} = $1 if($gpu->{card} =~ qr/: ([\w\ \(\)\.\!]+)[\/]?/); # or something like [.][^\\] [\/] # ((+_+))
+        }
+
+        undef @glx_data;
+    }
+}
+
 #==========================
 sub PrintEntry ($$) {
     if($_[1]) {
@@ -307,6 +356,7 @@ GetCPUInfo();
 GetMemInfo();
 GetOSInfo();
 GetMoboInfo();
+tableflip();
 
 if(HasContents($os)) {
     print "${title_color}Operating System-\n";
@@ -339,6 +389,12 @@ if(not $nohardware) {
             . ($processor->{freq} ? "@ $processor->{freq}GHz " : undef)
             . ($processor->{ht} ? 'with hyperthreading' : '')
         );
+    }
+    if(HasContents($gpu)){
+        print "${title_color}Video Card-\n";
+        PrintEntry('Vendor', $gpu->{vendor});
+        PrintEntry('Card', $gpu->{card});
+        PrintEntry('Driver', $gpu->{driver});
     }
     if(HasContents($memory)) {
         print "${title_color}Memory-\n";
