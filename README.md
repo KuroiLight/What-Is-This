@@ -8,14 +8,20 @@ What-Is-This
 
 It is very much a work in progress, and needs bug reports and portability testing.
 
+### Update+
+LongStory:
+complete merge of wia to wit, so its easier to manage;
+
+TLDR: do 'wit -l' to get the same functionality.
+
 ##### Feature Progress
  - [x] distro and kernel
  - [x] processor
  - [x] memory
  - [x] currently installed shells and their versions
  - [x] currently installed interpreters/scripting languages (e.g. lua, perl...)
- - ~~[/] add more shells/interpreters~~ *(will no longer be adding anything but the most common ones, for additions to this checkout my wia project)*
- - [_] add gpu info *[wip]*
+ - [/] add more shells/interpreters
+ - [/] add gpu info *[wip]*
  - [X] add mobo info
  - [x] add proper cmd line switches
  - [_] add terminal color detection
