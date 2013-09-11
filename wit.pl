@@ -20,7 +20,7 @@ eval {
     require Term::ANSIColor;
     Term::ANSIColor->import();
 };
-my $nocolor = 1 if($@);
+my $colors = ($@ ? 0 : 2);
 eval {
     require utf8;
     utf8->import();
@@ -29,19 +29,18 @@ use warnings; #lemme get my orange vest.
 #GLOBALS
 my $wit_version = '0.41.7';
  # bin directories
-my @bins = (
+my @bins = sort 
 '/usr/local/bin/',
 '/usr/bin/',
 '/bin/',
 '/usr/local/sbin/',
 '/usr/sbin/',
 '/sbin/',
-);
+;
+
 print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12" if ($] < 5.012);
-my $noshells = 0;
-my $nolangs = 0;
-my $nohardware = 0;
-my $flying_tables = 0;
+
+my $langs = 0;
 #colors
 my $bCOLORS256 = 1;
 my $title_color = '';
@@ -49,7 +48,7 @@ my $subtitle_color = '';
 my $value_color = '';
 
 #==========================You have been warned, hazardous material ahead.
-sub CommandExists ($) { #pass (cmd)
+sub CommithForth ($) { #pass (cmd)
     foreach my $bin (@bins) {
         return 1 if(-e "$bin$_[0]");
     }
@@ -89,11 +88,8 @@ sub Startup { #init code here
             print "\n\t-h,--help\tdisplay this help and exit";
             print "\n\t-i,--install\tinstall to .bashrc";
             print "\n\t-u,--uninstall\tuninstall from .bashrc";
-            print "\n\t-ex,--experimental\tenable experimental features";
-            print "\n\t-ns,--noshells\tdont display shells";
-            print "\n\t-nl,--nolangs\tdont display scripting languages";
-            print "\n\t-nh,--nohw\tdont display hardware";
-            print "\n\t-na,--no256\tdisable rgb256 coloring\n";
+            print "\n\t-nl,--langs\tdisplay programming languages/editors";
+            print "\n\t-na,--nocolor\tdisplay colorless\n";
             exit 0;
         } elsif($arg =~ /(-i|--install)/){ #start hackish code:
             my $abs_path = $ENV{'PWD'};
@@ -105,67 +101,100 @@ sub Startup { #init code here
             print((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
                 or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -u')) or "setup failed\n"));
             exit 0;                         #end hackish code:
-        } elsif($arg =~ /(-nl|--nolangs)/){
-            $nolangs = 1;
-        } elsif($arg =~ /(-ns|--noshells)/){
-            $noshells = 1;
-        } elsif($arg =~ /(-nh|--nohw)/){
-            $nohardware = 1;
-        } elsif($arg =~ /(-na|--no256)/){
-            $bCOLORS256 = 0;
-        } elsif($arg =~ /(-ex|--experimental)/) {
-            $flying_tables = 1;
+        } elsif($arg =~ /(-l|--langs)/){
+            $langs = 1;
+        } elsif($arg =~ /(-na|--nocolor)/){
+            $colors = 0;
         } else {
             print "Invalid option $arg\n";
             exit 1;
         }
     }
-    if(not $nocolor) {
-        $bCOLORS256 = ($Term::ANSIColor::VERSION >= 4.00 ? $bCOLORS256 : 0);
-        $title_color = color ( $bCOLORS256 ? 'rgb125' : 'blue');
-        $subtitle_color = color ( $bCOLORS256 ? 'rgb224' : 'green');
-        $value_color = color ( $bCOLORS256 ? 'rgb134' : 'cyan');
+    if($colors == 2) {
+        $colors = 1 if ($Term::ANSIColor::VERSION < 4.00);
+        $title_color = color ( $colors ? 'rgb125' : 'blue');
+        $subtitle_color = color ( $colors ? 'rgb224' : 'green');
+        $value_color = color ( $colors ? 'rgb134' : 'cyan');
     }
 }
 
-sub Cleanup { #clean up here
-    unless ($nocolor) {
+sub Cleanup {
+    if ($colors) {
         print (color('reset'));
     }
 }
 #==========================PROGRAM LISTS
+my $re_version = eval { qr/((([\d]+)\.)+[\d]+)/im };
+
 my %LISTS = (
-    shells => [
+    '3Tools' => [
+        { name => 'awk', versioncmd => 'awk --version', version => undef },
+        { name => 'grep', versioncmd => 'grep --version', version => undef },
+        { name => 'sed', versioncmd => 'sed --version', version => undef },
+    ],
+    '0Shells' => [
         { name => 'Bash', versioncmd => 'bash --version', version => undef },
         { name => 'Fish', versioncmd => 'fish --version 2>&1', version => undef },
-        { name => 'Mksh', versioncmd => '', version => undef }, # <- need suggestions for this
+        { name => 'Mksh', versioncmd => 'mksh', version => undef, altcmd => '' },
         { name => 'Tcsh', versioncmd => 'tcsh --version', version => undef },
         { name => 'Zsh', versioncmd => 'zsh --version', version => undef },
-    ], 
-    scripts => [
+    ],
+    '1Programming' => [
         { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
         { name => 'HaXe', versioncmd => 'haxe -version 2>&1', version => undef },
+        { name => 'Io', versioncmd => 'io --version', version => undef, edgecase => qr/(?<=v. )([\d]+)/ },
         { name => 'Lua', versioncmd => 'lua -v 2>&1', version => undef },
         { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
         { name => 'Neko', versioncmd => 'neko', version => undef },
         { name => 'newLisp', versioncmd => 'newlisp -v', version => undef },
-        { name => 'Perl', versioncmd => 'perl --version', version => undef },
+        { name => 'Perl5', versioncmd => 'perl --version', version => undef },
         { name => 'Perl6', versioncmd => 'perl6 -v', version => undef },
         { name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
         { name => 'Python3', versioncmd => 'python3 --version 2>&1', version => undef },
+        { name => 'Racket', versioncmd => 'racket --version', version => undef },
         { name => 'Ruby', versioncmd => 'ruby --version', version => undef },
         { name => 'Squirrel', versioncmd => 'squirrel -v', version => undef },
-    ], 
+        { name => 'Tcl', versioncmd => 'tclsh', version => undef, altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh"},
+        #compilers
+        { name => 'GNAT Ada', versioncmd => 'gnat', version => undef },
+        { name => 'Chicken', versioncmd => 'chicken -version', version => undef },
+        { name => 'GCC', versioncmd => 'gcc --version', version => undef },
+        { name => 'Guile', versioncmd => 'guile -v', version => undef },
+        { name => 'Rust', versioncmd => 'rust --version', version => undef },
+        { name => 'Vala', versioncmd => 'valac --version', version => undef },
+        { name => 'Ypsilon', versioncmd => 'ypsilon --version', version => undef },
+    ],
+    '2Editors' => [
+        { name => 'dex', versioncmd => 'dex -V', version => undef }, #simply displays 'no-version' last I checked.
+        { name => 'Diakonos', versioncmd => 'diakonos --version', version => undef },
+        { name => 'Emacs', versioncmd => 'emacs --version', version => undef },
+        { name => 'geany', versioncmd => 'geany --version', version => undef },
+        { name => 'gedit', versioncmd => 'gedit --version', version => undef },
+        { name => 'jed', versioncmd => 'jed --version', version => undef },
+        { name => 'Joe', versioncmd => 'joe', version => undef, altcmd => '' }, #no version option...
+        { name => 'Kate', versioncmd => 'kate --version', version => undef, edgecase => qr/(?<=Kate:[\s])($re_version)/ },
+        { name => 'Leafpad', versioncmd => 'leafpad --version', version => undef },
+        { name => 'medit', versioncmd => 'medit --version', version => undef },
+        { name => 'mousepad', versioncmd => 'mousepad --version', version => undef },
+        { name => 'nano', versioncmd => 'nano --version', version => undef },
+        { name => 'vi', versioncmd => 'vi', version => undef, altcmd => '' }, #can't get vi version info from cli switch, so just check if it exists.
+        { name => 'Vim', versioncmd => 'vim --version', version => undef },
+    ],
 );
 
-my $re_version = qr/((([\d]+)\.)+[\d]+)/ ;
-my $re_versionmatch = eval { qr/($re_version)/im };
-
-sub PopulateLists { #very sharp loop :P
+sub PopulateLists {
     foreach my $vals (keys %LISTS) {
         foreach my $elem ( @{$LISTS{$vals}}) {
-            if(($elem->{versioncmd} =~ qr/([\w]+)\ ?/) and CommandExists($1)) {
-                $elem->{version} = $1 if ((scalar `$elem->{versioncmd}`) =~ $re_versionmatch);
+            if(($elem->{versioncmd} =~ qr/([\w]+)\ ?/) and CommithForth($1)) {
+                $elem->{version} = ( #for the love of god, if you can't read this, blame my cat.
+                    (
+                        (defined $elem->{altcmd} ? (scalar `$elem->{altcmd}`) : (scalar `$elem->{versioncmd}`)) #use altcmds if available
+                            =~ 
+                        (defined $elem->{edgecase} ? $elem->{edgecase} : $re_version) #use edge cases if available
+                            and $1
+                    )
+                        or ('unknown') #this is an edge case in it self...
+                );
             }
         }
     }
@@ -243,14 +272,14 @@ my $os = {
 sub GetOSInfo {
     my $buffer = ReadFile('/proc/version');
     if($buffer) {
-        $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_versionmatch/im);
+        $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_version/im);
         undef $buffer;
     }
-    $os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommandExists('whoami'));
+    $os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
     do {
         my $host_name = FirstMatch(`hostname`, $re_anyword);
         $os->{userhost} .= ($host_name ? "\@$host_name" : '');
-    } if (CommandExists('hostname'));
+    } if (CommithForth('hostname'));
 
     if(($buffer = (ReadFile('/etc/lsb-release') or ReadFile('/etc/os-release')) )) {
         if($buffer) {
@@ -267,17 +296,17 @@ sub GetOSInfo {
     }
     
     my @packages = 0;
-    if(CommandExists('pacman')) { #Good ol' Arch (tested)
+    if(CommithForth('pacman')) { #Good ol' Arch (tested)
         @packages = (`pacman -Qq`);
     } elsif(-e -d '/var/db/pkg/') { #Gentoo (untested and I have no clue how different a gentoo environment may be)
         @packages = (`ls -d -1 /var/db/pkg/*/*`);
-    } elsif (CommandExists('dpkg')) { #Ubuntu (tested)
+    } elsif (CommithForth('dpkg')) { #Ubuntu (tested)
         @packages = (grep (/ii/, `dpkg -l 2>&1`));
     } elsif (-e -d '/var/log/packages') { #Debian (tested)
         @packages = (`ls -1 /var/log/packages`);
-    } elsif(CommandExists('rpm')) { #Suse/RedHat (untested will test later)
+    } elsif(CommithForth('rpm')) { #Suse/RedHat (untested will test later)
         @packages = (`rpm -qa`);
-    } elsif(CommandExists('pkg_info')) { #BSD (untested maybe later)
+    } elsif(CommithForth('pkg_info')) { #BSD (untested maybe later)
         @packages = (`pkg_info`);
     }
     $os->{package_count} = scalar @packages;
@@ -325,10 +354,10 @@ my $gpu = {
 };
 
 my @driver_patterns = ( #needs proper patterns...
-    qr/X($re_versionmatch-$re_versionmatch)/i,
-    qr/(mesa $re_versionmatch)/i,
-    qr/(nvidia $re_versionmatch)/i,
-    qr/$re_versionmatch/,
+    qr/X($re_version-$re_version)/i,
+    qr/(mesa $re_version)/i,
+    qr/(nvidia $re_version)/i,
+    qr/$re_version/,
 );
 
 #my $re_cardmatch = qr/(((?<=X\()|mesa|nvidia)[\s]?((([\d]+)\.)+[\d]+))/i; #WTF is this, and when did I write it?!?!
@@ -336,7 +365,7 @@ my @driver_patterns = ( #needs proper patterns...
 #glxinfo is very slow...
 #may have to ask something else for gpu info instead... (>_<)
 sub GetGPUInfo {
-    if($flying_tables and CommandExists('glxinfo')) {
+    if(CommithForth('glxinfo')) {
         my @glx_data = `glxinfo`;
 
         $gpu->{vendor} = (grep(/OpenGL vendor string/, @glx_data))[0];
@@ -384,14 +413,22 @@ sub HasContents ($) {
     }
     return $count;
 }
+
+sub PrintHashes {
+    for my $vals (sort keys %LISTS) {
+        $vals =~ qr/[\d]?([\w]+)/; #get val without sort order number, assuming is has such a thing
+        print "${title_color}$1-\n";
+        PrintList($LISTS{$vals});
+    }
+}
 #==========================WRITE OUTPUT/MAIN
 Startup();
-PopulateLists();
+PopulateLists() if($langs);
 GetCPUInfo();
 GetMemInfo();
 GetOSInfo();
 GetMoboInfo();
-GetGPUInfo() if ($flying_tables);
+GetGPUInfo();
 
 
 if(HasContents($os)) {
@@ -401,42 +438,37 @@ if(HasContents($os)) {
     PrintEntry("User\@Host", $os->{userhost});
     PrintEntry('Packages', $os->{package_count});
 }
-if(not $noshells) {
-    print "${title_color}Shells-\n";
-    PrintList($LISTS{shells});
+
+if(HasContents($motherboard)) {
+    print "${title_color}Motherboard-\n";
+    PrintEntry('Vendor', $motherboard->{vendor});
+    PrintEntry('Model', $motherboard->{board});
+    PrintEntry('Bios', $motherboard->{bios});
 }
-if(not $nolangs) {
-    print "${title_color}Script Langs-\n";
-    PrintList($LISTS{scripts});
+if(HasContents($processor)) {
+    print "${title_color}Processor-\n";
+    PrintEntry('Vendor', $processor->{vendor});
+    PrintEntry('Model', $processor->{name});
+    PrintEntry('Details', 
+        ($processor->{cores} ? "$processor->{cores}-Cores " : undef)
+        . ($processor->{freq} ? "@ $processor->{freq}GHz " : undef)
+        . ($processor->{ht} ? 'with hyperthreading' : '')
+    );
 }
-if(not $nohardware) {
-    if(HasContents($motherboard)) {
-        print "${title_color}Motherboard-\n";
-        PrintEntry('Vendor', $motherboard->{vendor});
-        PrintEntry('Model', $motherboard->{board});
-        PrintEntry('Bios', $motherboard->{bios});
-    }
-    if(HasContents($processor)) {
-        print "${title_color}Processor-\n";
-        PrintEntry('Vendor', $processor->{vendor});
-        PrintEntry('Model', $processor->{name});
-        PrintEntry('Details', 
-            ($processor->{cores} ? "$processor->{cores}-Cores " : undef)
-            . ($processor->{freq} ? "@ $processor->{freq}GHz " : undef)
-            . ($processor->{ht} ? 'with hyperthreading' : '')
-        );
-    }
-    if(HasContents($gpu)){
-        print "${title_color}Video Card-\n";
-        PrintEntry('Vendor', $gpu->{vendor});
-        PrintEntry('Card', $gpu->{card});
-        PrintEntry('Driver', $gpu->{driver});
-    }
-    if(HasContents($memory)) {
-        print "${title_color}Memory-\n";
-        PrintEntry('Ram', ($memory->{ram_total} ? "$memory->{ram_used}M/$memory->{ram_total}M" : undef));
-        PrintEntry('Swap', ($memory->{swap_total} ? "$memory->{swap_used}M/$memory->{swap_total}M" : undef));
-    }
+if(HasContents($gpu)){
+    print "${title_color}Video Card-\n";
+    PrintEntry('Vendor', $gpu->{vendor});
+    PrintEntry('Card', $gpu->{card});
+    PrintEntry('Driver', $gpu->{driver});
+}
+if(HasContents($memory)) {
+    print "${title_color}Memory-\n";
+    PrintEntry('Ram', ($memory->{ram_total} ? "$memory->{ram_used}M/$memory->{ram_total}M" : undef));
+    PrintEntry('Swap', ($memory->{swap_total} ? "$memory->{swap_used}M/$memory->{swap_total}M" : undef));
+}
+
+if($langs) {
+    PrintHashes();
 }
 
 Cleanup();
