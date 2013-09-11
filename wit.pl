@@ -17,7 +17,7 @@ eval {
     utf8->import();
 };
 #GLOBALS
-my $wit_version = '0.41.6';
+my $wit_version = '0.41.65';
  # bin directories
 my @bins = (
 '/usr/local/bin/',
