@@ -34,3 +34,4 @@ License: MIT
 Email: kuroilight @ openmailbox.org
 ```
 
+*checkout my tool display script 'wia' (https://github.com/KuroiLight/What-Is-Available) based on this project, but written purely to display available tools.*
