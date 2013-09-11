@@ -135,7 +135,7 @@ my %LISTS = (
     scripts => [
         { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
         { name => 'HaXe', versioncmd => 'haxe -version 2>&1', version => undef },
-        { name => 'Io', versioncmd => 'io --version', version => undef },
+        #{ name => 'Io', versioncmd => 'io --version', version => undef },
         { name => 'Lua', versioncmd => 'lua -v 2>&1', version => undef },
         { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
         { name => 'Neko', versioncmd => 'neko', version => undef },
@@ -149,9 +149,9 @@ my %LISTS = (
     ], 
 );
 
-#my $re_versionmatch = eval { qr/(([\d]+\.){1,2}[\d]+)/ };
 my $re_version = qr/((([\d]+)\.)+[\d]+)/ ;
-my $re_versionmatch = eval { qr/($re_version|(?<=v. )([\d]+))/im };
+#my $re_versionmatch = eval { qr/($re_version|(?<=v. )([\d]+))/im };
+my $re_versionmatch = eval { qr/($re_version)/im };
 
 sub PopulateLists { #very sharp loop :P
     foreach my $vals (keys %LISTS) {
