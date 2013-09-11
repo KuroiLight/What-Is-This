@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-use Cwd qw/ abs_path /;
+#use Cwd qw/ abs_path /;
+my $abs_path = $ENV{'PWD'};
 use autodie;
 use File::Copy qw/ copy /;
 
@@ -13,7 +14,7 @@ if($ISROOT) {
 
 my $bashrc = abs_path($ENV{HOME} . '/.bashrc');
 print "bashrc @ $bashrc\n";
-my $wit_path = abs_path('') . '/wit.pl';
+my $wit_path = $abs_path . '/wit.pl';
 
 my $install = 0;
 my $uninstall = 0;

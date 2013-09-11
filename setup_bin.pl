@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
-use Cwd qw/ abs_path /;
+#use Cwd qw/ abs_path /;
+my $abs_path = $ENV{'PWD'};
 use autodie;
 use File::Temp qw/ tempfile /;
 use File::Copy qw/ copy /;
@@ -15,7 +16,7 @@ my $uninstall = 0;
 my $ISROOT = (($> + $<) ? 0 : 1);
 
 my $wit_bin = '/usr/bin/wit';
-my $wit_path = abs_path('') . '/wit.pl';
+my $wit_path = $abs_path . '/wit.pl';
 
 foreach my $arg (@ARGV) {
     if($arg =~ qr/u/i) {
