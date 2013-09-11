@@ -1,12 +1,21 @@
 #!/usr/bin/perl
-#use warnings;
-#use diagnostics;
 ###
 #   What Is This (wit) 
 #   Simple Fast System Information
 #   This file and its accompanying files are Licensed under the MIT License.
 #   Written by: Kuroilight@openmailbox.org
 ###
+
+##
+# Dear reader,
+#   Treading beyond this point invalidates any garantee
+#  what so ever (that you thought you had)
+#  that this code does anything remotely useful.
+##
+# Dear future maintainer,
+#   Please direct any further edits to /dev/null
+##
+
 eval {
     require Term::ANSIColor;
     Term::ANSIColor->import();
@@ -16,8 +25,9 @@ eval {
     require utf8;
     utf8->import();
 };
+use warnings; #lemme get my orange vest.
 #GLOBALS
-my $wit_version = '0.41.65';
+my $wit_version = '0.41.7';
  # bin directories
 my @bins = (
 '/usr/local/bin/',
@@ -38,7 +48,7 @@ my $title_color = '';
 my $subtitle_color = '';
 my $value_color = '';
 
-#==========================
+#==========================You have been warned, hazardous material ahead.
 sub CommandExists ($) { #pass (cmd)
     foreach my $bin (@bins) {
         return 1 if(-e "$bin$_[0]");
@@ -77,24 +87,24 @@ sub Startup { #init code here
             print "Help:\n  wit.pl\t<options>";
             print "\n\t-v,--version\tdisplay version and exit";
             print "\n\t-h,--help\tdisplay this help and exit";
-			print "\n\t-i,--install\tinstall to .bashrc";
-			print "\n\t-u,--uninstall\tuninstall from .bashrc";
+            print "\n\t-i,--install\tinstall to .bashrc";
+            print "\n\t-u,--uninstall\tuninstall from .bashrc";
             print "\n\t-ex,--experimental\tenable experimental features";
             print "\n\t-ns,--noshells\tdont display shells";
             print "\n\t-nl,--nolangs\tdont display scripting languages";
             print "\n\t-nh,--nohw\tdont display hardware";
             print "\n\t-na,--no256\tdisable rgb256 coloring\n";
             exit 0;
-		} elsif($arg =~ /(-i|--install)/){
-			my $abs_path = $ENV{'PWD'};
-			((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
-				or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -i')) or "setup failed"));
-			exit 0;
-		} elsif($arg =~ /(-u|--uninstall)/){
-			my $abs_path = $ENV{'PWD'};
-			((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
-				or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -u')) or "setup failed"));
-			exit 0;
+        } elsif($arg =~ /(-i|--install)/){ #start hackish code:
+            my $abs_path = $ENV{'PWD'};
+            print((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
+                or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -i')) or "setup failed\n")); #extra parenthesis help get the point across
+            exit 0;
+        } elsif($arg =~ /(-u|--uninstall)/){
+            my $abs_path = $ENV{'PWD'};
+            print((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
+                or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -u')) or "setup failed\n"));
+            exit 0;                         #end hackish code:
         } elsif($arg =~ /(-nl|--nolangs)/){
             $nolangs = 1;
         } elsif($arg =~ /(-ns|--noshells)/){
@@ -135,7 +145,6 @@ my %LISTS = (
     scripts => [
         { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
         { name => 'HaXe', versioncmd => 'haxe -version 2>&1', version => undef },
-        #{ name => 'Io', versioncmd => 'io --version', version => undef },
         { name => 'Lua', versioncmd => 'lua -v 2>&1', version => undef },
         { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
         { name => 'Neko', versioncmd => 'neko', version => undef },
@@ -150,7 +159,6 @@ my %LISTS = (
 );
 
 my $re_version = qr/((([\d]+)\.)+[\d]+)/ ;
-#my $re_versionmatch = eval { qr/($re_version|(?<=v. )([\d]+))/im };
 my $re_versionmatch = eval { qr/($re_version)/im };
 
 sub PopulateLists { #very sharp loop :P
@@ -164,6 +172,7 @@ sub PopulateLists { #very sharp loop :P
 }
 #==========================CPU INFORMATION
 #fix plural for single cores
+#reminder again fix plural
 my $processor = {
     vendor => undef,
     name => undef,
@@ -260,15 +269,15 @@ sub GetOSInfo {
     my @packages = 0;
     if(CommandExists('pacman')) { #Good ol' Arch (tested)
         @packages = (`pacman -Qq`);
-    } elsif(-e -d '/var/db/pkg/') { #Gentoo
+    } elsif(-e -d '/var/db/pkg/') { #Gentoo (untested and I have no clue how different a gentoo environment may be)
         @packages = (`ls -d -1 /var/db/pkg/*/*`);
     } elsif (CommandExists('dpkg')) { #Ubuntu (tested)
         @packages = (grep (/ii/, `dpkg -l 2>&1`));
     } elsif (-e -d '/var/log/packages') { #Debian (tested)
         @packages = (`ls -1 /var/log/packages`);
-    } elsif(CommandExists('rpm')) { #Suse/RedHat
+    } elsif(CommandExists('rpm')) { #Suse/RedHat (untested will test later)
         @packages = (`rpm -qa`);
-    } elsif(CommandExists('pkg_info')) { #BSD
+    } elsif(CommandExists('pkg_info')) { #BSD (untested maybe later)
         @packages = (`pkg_info`);
     }
     $os->{package_count} = scalar @packages;
@@ -306,9 +315,8 @@ sub GetMemInfo {
         undef $buffer;
     }
 }
-#==========================GPU INFORMATION (requires glxinfo atm) キタ!!
-#bug when missing if.pm
-#no warnings => 'experimental::smartmatch'; #Whyyyyyyy!!! (╯°□°）╯︵ ┻━┻
+#==========================GPU INFORMATION (requires glxinfo atm)
+#no warnings => 'experimental::smartmatch'; #Whyyyyyyy!!! HOW CAN SOMETHING BE EXPIREMENTAL 'AND' DEPRECATED!!!!
 
 my $gpu = {
     vendor => undef,
@@ -316,18 +324,18 @@ my $gpu = {
     driver => undef,
 };
 
-my @driver_patterns = ( #needs proper patterns...(*￣m￣)
+my @driver_patterns = ( #needs proper patterns...
     qr/X($re_versionmatch-$re_versionmatch)/i,
     qr/(mesa $re_versionmatch)/i,
     qr/(nvidia $re_versionmatch)/i,
     qr/$re_versionmatch/,
 );
 
-my $re_cardmatch = qr/(((?<=X\()|mesa|nvidia)[\s]?((([\d]+)\.)+[\d]+))/i;
+#my $re_cardmatch = qr/(((?<=X\()|mesa|nvidia)[\s]?((([\d]+)\.)+[\d]+))/i; #WTF is this, and when did I write it?!?!
 
-#glxinfo is very slow...（￣□￣；）
+#glxinfo is very slow...
 #may have to ask something else for gpu info instead... (>_<)
-sub tableflip {
+sub GetGPUInfo {
     if($flying_tables and CommandExists('glxinfo')) {
         my @glx_data = `glxinfo`;
 
@@ -336,12 +344,17 @@ sub tableflip {
 
         $gpu->{driver} = ((grep(/OpenGL core profile version string/, @glx_data))[0] or (grep(/OpenGL version string/, @glx_data))[0]);
         if($gpu->{driver}) {
-            $gpu->{driver} = $1 if ($gpu->{driver} =~ $re_cardmatch); #Will need to be replaced. (╯°□°）╯︵ ┻━┻
+            foreach my $regex(@driver_patterns) { #yes, I replaced a smartmatch with a foreach loop, forgive me.
+                if($gpu->{driver} =~ $regex) {
+                    $gpu->{driver} = $1;
+                    last; #in the words of shaggy, "lets get outta here!"
+                }
+            }
         }
 
         $gpu->{card} = (grep(/OpenGL renderer string/, @glx_data))[0];
         if($gpu->{card}) {
-            $gpu->{card} = $1 if($gpu->{card} =~ qr/: ([\w\ \(\)\.\!]+)[\/]?/); # or something like [.][^\\] [\/] # ((+_+))
+            $gpu->{card} = $1 if($gpu->{card} =~ qr/: ([\w\ \(\)\.\!]+)[\/]?/); # This is the ugliest regex i could come up with, with my limited abilities, sorry.
         }
 
         undef @glx_data;
@@ -378,7 +391,7 @@ GetCPUInfo();
 GetMemInfo();
 GetOSInfo();
 GetMoboInfo();
-tableflip() if ($flying_tables);
+GetGPUInfo() if ($flying_tables);
 
 
 if(HasContents($os)) {
