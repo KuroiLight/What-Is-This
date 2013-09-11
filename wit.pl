@@ -77,12 +77,24 @@ sub Startup { #init code here
             print "Help:\n  wit.pl\t<options>";
             print "\n\t-v,--version\tdisplay version and exit";
             print "\n\t-h,--help\tdisplay this help and exit";
+			print "\n\t-i,--install\tinstall to .bashrc";
+			print "\n\t-u,--uninstall\tuninstall from .bashrc";
             print "\n\t-ex,--experimental\tenable experimental features";
             print "\n\t-ns,--noshells\tdont display shells";
             print "\n\t-nl,--nolangs\tdont display scripting languages";
             print "\n\t-nh,--nohw\tdont display hardware";
             print "\n\t-na,--no256\tdisable rgb256 coloring\n";
             exit 0;
+		} elsif($arg =~ /(-i|--install)/){
+			my $abs_path = $ENV{'PWD'};
+			((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
+				or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -i')) or "setup failed"));
+			exit 0;
+		} elsif($arg =~ /(-u|--uninstall)/){
+			my $abs_path = $ENV{'PWD'};
+			((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
+				or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -u')) or "setup failed"));
+			exit 0;
         } elsif($arg =~ /(-nl|--nolangs)/){
             $nolangs = 1;
         } elsif($arg =~ /(-ns|--noshells)/){
