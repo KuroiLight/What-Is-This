@@ -5,6 +5,8 @@
 #   This file and its accompanying files are Licensed under the MIT License.
 #   Written by: Kuroilight@openmailbox.org
 ###
+use strict;
+use warnings; #lemme get my orange vest.
 
 ##
 # Dear reader,
@@ -25,7 +27,6 @@ eval {
     require utf8;
     utf8->import();
 };
-use warnings; #lemme get my orange vest.
 #GLOBALS
 my $wit_version = '0.41.7';
  # bin directories
