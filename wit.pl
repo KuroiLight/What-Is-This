@@ -123,9 +123,11 @@ my %LISTS = (
     scripts => [
         { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
         { name => 'HaXe', versioncmd => 'haxe -version 2>&1', version => undef },
+        { name => 'Io', versioncmd => 'io --version', version => undef },
         { name => 'Lua', versioncmd => 'lua -v 2>&1', version => undef },
         { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
         { name => 'Neko', versioncmd => 'neko', version => undef },
+        { name => 'newLisp', versioncmd => 'newlisp -v', version => undef },
         { name => 'Perl', versioncmd => 'perl --version', version => undef },
         { name => 'Perl6', versioncmd => 'perl6 -v', version => undef },
         { name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
@@ -135,7 +137,9 @@ my %LISTS = (
     ], 
 );
 
-my $re_versionmatch = eval { qr/(([\d]+\.){1,2}[\d]+)/ };
+#my $re_versionmatch = eval { qr/(([\d]+\.){1,2}[\d]+)/ };
+my $re_version = qr/((([\d]+)\.)+[\d]+)/ ;
+my $re_versionmatch = eval { qr/($re_version|(?<=v. )([\d]+))/im };
 
 sub PopulateLists { #very sharp loop :P
     foreach my $vals (keys %LISTS) {
@@ -247,7 +251,7 @@ sub GetOSInfo {
     } elsif(-e -d '/var/db/pkg/') { #Gentoo
         @packages = (`ls -d -1 /var/db/pkg/*/*`);
     } elsif (CommandExists('dpkg')) { #Ubuntu (tested)
-        @packages = (grep (/ii/, `dpkg -l`));
+        @packages = (grep (/ii/, `dpkg -l 2>&1`));
     } elsif (-e -d '/var/log/packages') { #Debian (tested)
         @packages = (`ls -1 /var/log/packages`);
     } elsif(CommandExists('rpm')) { #Suse/RedHat
@@ -292,7 +296,7 @@ sub GetMemInfo {
 }
 #==========================GPU INFORMATION (requires glxinfo atm) キタ!!
 #bug when missing if.pm
-no if $] >= 5.017011, warnings => 'experimental::smartmatch'; #Whyyyyyyy!!! (╯°□°）╯︵ ┻━┻
+#no warnings => 'experimental::smartmatch'; #Whyyyyyyy!!! (╯°□°）╯︵ ┻━┻
 
 my $gpu = {
     vendor => undef,
@@ -307,6 +311,8 @@ my @driver_patterns = ( #needs proper patterns...(*￣m￣)
     qr/$re_versionmatch/,
 );
 
+my $re_cardmatch = qr/(((?<=X\()|mesa|nvidia)[\s]?((([\d]+)\.)+[\d]+))/i;
+
 #glxinfo is very slow...（￣□￣；）
 #may have to ask something else for gpu info instead... (>_<)
 sub tableflip {
@@ -318,7 +324,7 @@ sub tableflip {
 
         $gpu->{driver} = ((grep(/OpenGL core profile version string/, @glx_data))[0] or (grep(/OpenGL version string/, @glx_data))[0]);
         if($gpu->{driver}) {
-            $gpu->{driver} = $1 if ($gpu->{driver} ~~ @driver_patterns); #Will need to be replaced. (╯°□°）╯︵ ┻━┻
+            $gpu->{driver} = $1 if ($gpu->{driver} =~ $re_cardmatch); #Will need to be replaced. (╯°□°）╯︵ ┻━┻
         }
 
         $gpu->{card} = (grep(/OpenGL renderer string/, @glx_data))[0];
@@ -355,13 +361,13 @@ sub HasContents ($) {
 }
 #==========================WRITE OUTPUT/MAIN
 Startup();
-
 PopulateLists();
 GetCPUInfo();
 GetMemInfo();
 GetOSInfo();
 GetMoboInfo();
-tableflip();
+tableflip() if ($flying_tables);
+
 
 if(HasContents($os)) {
     print "${title_color}Operating System-\n";
