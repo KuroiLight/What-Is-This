@@ -7,7 +7,6 @@
 ###
 use strict;
 use warnings; #lemme get my orange vest.
-
 ##
 # Dear reader,
 #   Treading beyond this point invalidates any garantee
@@ -27,9 +26,10 @@ eval {
     require utf8;
     utf8->import();
 };
-#GLOBALS
+
+
 my $wit_version = '0.41.7';
- # bin directories
+
 my @bins = sort 
 '/usr/local/bin/',
 '/usr/bin/',
@@ -42,7 +42,7 @@ my @bins = sort
 print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12" if ($] < 5.012);
 
 my $langs = 0;
-#colors
+
 my $bCOLORS256 = 1;
 my $title_color = '';
 my $subtitle_color = '';
@@ -394,7 +394,7 @@ sub GetGPUInfo {
 #==========================
 sub PrintEntry ($$) {
     if($_[1]) {
-        print "\t${subtitle_color}${_[0]}\t" . ((length($_[0]) >= 8) ? '' : "\t") . "${value_color}${_[1]}\n";
+        print "\t${subtitle_color}${_[0]}\t" . ((length($_[0]) >= 16) ? '' : ((length($_[0]) >= 8) ? '' : "\t")) . "${value_color}${_[1]}\n";
     }
 }
 
