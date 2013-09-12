@@ -270,41 +270,42 @@ sub GetMoboInfo {
 # amiwm - apparently still maintained, though not sure.
 
 my %wm_list = (
-    'afterstep' => 'AfterStep', #2months stable, still active #+1
-    'awesome' => 'Awesome', # last stable 5 months
-    #'beryl' => 'Beryl', #appears to have merged with compiz? though I may be wrong.
-    #'blackbox' => 'Blackbox', # last stable 7 years ago, is this still maintained?
-    'cinnamon' => 'Cinnamon', #still active, though the process name may change to muffin in the future(?)
-    'cwm' => 'CalmWM', #active, mostly used on openbsd #+1
-    'compiz' => 'Compiz', #still active
-    #'dminiwm' => 'dminiwm', <-----------------
-    #'dwm' => 'DWM', #last stable 20 months ago, has since been forked by better alts.
-    #'e16' => 'E16', #superseded by E17
-    #'emerald' => 'Emerald', <-----------------
-    'enlightenment' => 'E17', #still active
-    #'fluxbox' => 'FluxBox', <-----------------
-    #'fvwm' => 'FVWM', #still active
-    #'herbstluftwm' => 'herbstluftwm',
-    #'icewm' => 'IceWM', <-----------------
-    'kwin' => 'KWin', #active stable
-    'metacity' => 'Metacity', #last stable 17 months ago; even though its been replaced I'll keep it on the list until it looks dead.
-    #'monsterwm' => 'monsterwm', <-----------------
-    #'musca' => 'Musca', <-----------------
-    'mutter' => 'Mutter', # new wm using wayland #+1
-    #'openbox' => 'OpenBox', <-----------------
-    #'pekwm' => 'PekWM', <-----------------
-    'ratpoison' => 'Ratpoison', #stable 4 months ago
-    #'sawfish' => 'Sawfish', <-----------------
-    #'scrotwm' => 'ScrotWM', <-----------------
-    #'spectrwm' => 'SpectrWM', <-----------------
-    #'stumpwm' => 'StumpWM', <-----------------
-    #'subtle' => 'subtle', <-----------------
-    #'wmaker' => 'WindowMaker', <-----------------
-    'wmfs' => 'WMFS', #being replaced with wmfs2
-    #'wmii' => 'wmii', #last stable 3 years ago
-    'xfwm4' => 'Xfwm4',  #over year since last stable; still actively used.
-    'xmonad' => 'XMonad', #8 months; still active
-    'i3' => 'i3', #still active
+    'afterstep' => 'AfterStep',         #2months stable, still active #+1
+    'awesome' => 'Awesome',             # last stable 5 months
+    #'beryl' => 'Beryl',                #appears to have merged with compiz? though I may be wrong.
+    #'blackbox' => 'Blackbox',          # last stable 7 years ago, updates 5; is this still maintained?
+    'cinnamon' => 'Cinnamon',           #still active, though the process name may change to muffin in the future(?)
+    'cwm' => 'CalmWM',                  #active, mostly used on openbsd #+1
+    'compiz' => 'Compiz',               #still active
+    'dminiwm' => 'dminiwm',             #4 months since last commit
+    #'dwm' => 'DWM',                    #last stable 20 months ago, has since been forked by better alts.
+    #'e16' => 'E16',                    #superseded by E17
+    #'emerald' => 'Emerald',            #doesn't appear to be a WM in it self, just a window decorator that comes with compiz.
+    'enlightenment' => 'E17',           #still active
+    'fluxbox' => 'FluxBox',             #stable 6 months
+    'fvwm' => 'FVWM',                   #still active, 16 months
+    'herbstluftwm' => 'herbstluftwm',   #still active
+    'icewm' => 'IceWM',                 #recent commits
+    'jwm' => 'JWM',                     #active commits #+1
+    'kwin' => 'KWin',                   #active stable
+    'metacity' => 'Metacity',           #last stable 17 months ago; even though its been replaced I'll keep it on the list until it looks dead.
+    'monsterwm' => 'monsterwm',         #last code commit 9 months ago
+    #'musca' => 'Musca',        <-----------------
+    'mutter' => 'Mutter',               #new wm using wayland #+1
+    'openbox' => 'OpenBox',             #still active
+    #'pekwm' => 'PekWM',        <-----------------
+    'ratpoison' => 'Ratpoison',         #stable 4 months ago
+    #'sawfish' => 'Sawfish',    <-----------------
+    #'scrotwm' => 'ScrotWM',    <-----------------
+    #'spectrwm' => 'SpectrWM',  <-----------------
+    #'stumpwm' => 'StumpWM',    <-----------------
+    'subtle' => 'subtle',               #commits recently
+    'wmaker' => 'WindowMaker',          #stable in august
+    'wmfs' => 'WMFS',                   #being replaced with wmfs2
+    #'wmii' => 'wmii',                  #last stable 3 years ago
+    'xfwm4' => 'Xfwm4',                 #still active
+    'xmonad' => 'XMonad',               #8 months; still active
+    'i3' => 'i3',                       #still active
 );
 my @plist = `ps axco command`;
 my $os = {
@@ -363,7 +364,7 @@ sub GetOSInfo {
         fakeBreak: { #one of the things I hate about perl is this lame excuse of a loop break;
             foreach my $wm (keys %wm_list) {
                 foreach my $pname(@plist) {
-                    if($pname =~ $wm) {
+                    if($pname =~ qr/$wm/i) {
                         $os->{window_manager} = $wm_list{$wm};
                         last fakeBreak;
                     }
