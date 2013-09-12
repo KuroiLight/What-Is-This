@@ -523,8 +523,8 @@ if(HasContents($processor)) {
     PrintEntry('Vendor', $processor->{vendor});
     PrintEntry('Model', $processor->{name});
     PrintEntry('Details', 
-               ($processor->{cores} ? "$processor->{cores}-Core" . ($processor->{cores} > 1 ? 's ' : ' ') : undef)
-        . ($processor->{freq} ? "\@$processor->{freq}GHz " : undef)
+               ($processor->{cores} ? "$processor->{cores}-Core" . ($processor->{cores} > 1 ? 's ' : ' ') : '')
+        . ($processor->{freq} ? "\@$processor->{freq}GHz " : '')
         . ($processor->{ht} ? 'with hyperthreading' : '')
     );
 }
@@ -536,8 +536,8 @@ if(HasContents($gpu)){
 }
 if(HasContents($memory)) {
     print "${title_color}Memory-\n";
-    PrintEntry('Ram', ($memory->{ram_total} ? "$memory->{ram_used}M/$memory->{ram_total}M" : undef));
-    PrintEntry('Swap', ($memory->{swap_total} ? "$memory->{swap_used}M/$memory->{swap_total}M" : undef));
+    PrintEntry('Ram', ($memory->{ram_total} ? "$memory->{ram_used}M/$memory->{ram_total}M" : ''));
+    PrintEntry('Swap', ($memory->{swap_total} ? "$memory->{swap_used}M/$memory->{swap_total}M" : ''));
 }
 
 if($langs) {
