@@ -469,7 +469,8 @@ sub PrintList ($) {
     my $list = $_[0]; my $count = 0;
     foreach my $elem (@{$list}) {
         if($elem->{version}) {
-            PrintEntry($elem->{name}, 'v' . $elem->{version});
+            PrintEntry($elem->{name}, (not ($elem->{version} eq 'unknown') ? 'v' : '') . $elem->{version});
+            #PrintEntry($elem->{name}, 'v' . $elem->{version});
         }
     }
 }
