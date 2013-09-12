@@ -299,6 +299,7 @@ my %wm_list = (
     #'scrotwm' => 'ScrotWM',    <-----------------
     #'spectrwm' => 'SpectrWM',  <-----------------
     #'stumpwm' => 'StumpWM',    <-----------------
+    #twm                                #+1 <-----------------
     'subtle' => 'subtle',               #commits recently
     'wmaker' => 'WindowMaker',          #stable in august
     'wmfs' => 'WMFS',                   #being replaced with wmfs2
@@ -500,7 +501,7 @@ if(HasContents($os)) {
     PrintEntry('Distro', ($os->{distro} ? "$os->{distro} " : '') . ($os->{distro_version} ? "$os->{distro_version} " : ''));
     PrintEntry('Kernel', $os->{kernel});
     PrintEntry('User@Host', $os->{userhost});
-    PrintEntry('WindowManager', $os->{window_manager});
+    PrintEntry('WM', $os->{window_manager});
     PrintEntry('Packages', $os->{package_count});
 }
 
