@@ -262,40 +262,49 @@ sub GetMoboInfo {
     }
 }
 #==========================OPERATING SYSTEM
-#yes I cheated and generated this from a regex...
+#WM List originally generated with regex, from the list in screenfetch, Though I am remaintaining it.
+#
+#other wms not on the list that I checked:
+# Ion - no longer active, active fork called 'notion'
+# PWM - superseded by Ion (lol); Historical...
+# amiwm - apparently still maintained, though not sure.
+
 my %wm_list = (
-    'awesome' => 'Awesome',
-    'beryl' => 'Beryl',
-    'blackbox' => 'Blackbox',
-    'cinnamon' => 'Cinnamon',
-    'compiz' => 'Compiz',
-    'dminiwm' => 'dminiwm',
-    'dwm' => 'DWM',
-    'e16' => 'E16',
-    'emerald' => 'Emerald',
-    'enlightenment' => 'E17',
-    'fluxbox' => 'FluxBox',
-    'fvwm' => 'FVWM',
-    'herbstluftwm' => 'herbstluftwm',
-    'icewm' => 'IceWM',
-    'kwin' => 'KWin',
-    'metacity' => 'Metacity',
-    'monsterwm' => 'monsterwm',
-    'musca' => 'Musca',
-    'openbox' => 'OpenBox',
-    'pekwm' => 'PekWM',
-    'ratpoison' => 'Ratpoison',
-    'sawfish' => 'Sawfish',
-    'scrotwm' => 'ScrotWM',
-    'spectrwm' => 'SpectrWM',
-    'stumpwm' => 'StumpWM',
-    'subtle' => 'subtle',
-    'wmaker' => 'WindowMaker',
-    'wmfs' => 'WMFS',
-    'wmii' => 'wmii',
-    'xfwm4' => 'Xfwm4', 
-    'xmonad' => 'XMonad',
-    'i3' => 'i3',
+    'afterstep' => 'AfterStep', #2months stable, still active #+1
+    'awesome' => 'Awesome', # last stable 5 months
+    #'beryl' => 'Beryl', #appears to have merged with compiz? though I may be wrong.
+    #'blackbox' => 'Blackbox', # last stable 7 years ago, is this still maintained?
+    'cinnamon' => 'Cinnamon', #still active, though the process name may change to muffin in the future(?)
+    'cwm' => 'CalmWM', #active, mostly used on openbsd #+1
+    'compiz' => 'Compiz', #still active
+    #'dminiwm' => 'dminiwm', <-----------------
+    #'dwm' => 'DWM', #last stable 20 months ago, has since been forked by better alts.
+    #'e16' => 'E16', #superseded by E17
+    #'emerald' => 'Emerald', <-----------------
+    'enlightenment' => 'E17', #still active
+    #'fluxbox' => 'FluxBox', <-----------------
+    #'fvwm' => 'FVWM', #still active
+    #'herbstluftwm' => 'herbstluftwm',
+    #'icewm' => 'IceWM', <-----------------
+    'kwin' => 'KWin', #active stable
+    'metacity' => 'Metacity', #last stable 17 months ago; even though its been replaced I'll keep it on the list until it looks dead.
+    #'monsterwm' => 'monsterwm', <-----------------
+    #'musca' => 'Musca', <-----------------
+    'mutter' => 'Mutter', # new wm using wayland #+1
+    #'openbox' => 'OpenBox', <-----------------
+    #'pekwm' => 'PekWM', <-----------------
+    'ratpoison' => 'Ratpoison', #stable 4 months ago
+    #'sawfish' => 'Sawfish', <-----------------
+    #'scrotwm' => 'ScrotWM', <-----------------
+    #'spectrwm' => 'SpectrWM', <-----------------
+    #'stumpwm' => 'StumpWM', <-----------------
+    #'subtle' => 'subtle', <-----------------
+    #'wmaker' => 'WindowMaker', <-----------------
+    'wmfs' => 'WMFS', #being replaced with wmfs2
+    #'wmii' => 'wmii', #last stable 3 years ago
+    'xfwm4' => 'Xfwm4',  #over year since last stable; still actively used.
+    'xmonad' => 'XMonad', #8 months; still active
+    'i3' => 'i3', #still active
 );
 my @plist = `ps axco command`;
 my $os = {
@@ -472,6 +481,9 @@ sub PrintHashes {
         PrintList($LISTS{$vals});
     }
 }
+
+# sub PrintHash {
+#     for my %item (
 #==========================WRITE OUTPUT/MAIN
 Startup();
 PopulateLists() if($langs);
@@ -486,7 +498,7 @@ if(HasContents($os)) {
     print "${title_color}Operating System-\n";
     PrintEntry('Distro', ($os->{distro} ? "$os->{distro} " : '') . ($os->{distro_version} ? "$os->{distro_version} " : ''));
     PrintEntry('Kernel', $os->{kernel});
-    PrintEntry("User\@Host", $os->{userhost});
+    PrintEntry('User@Host', $os->{userhost});
     PrintEntry('WindowManager', $os->{window_manager});
     PrintEntry('Packages', $os->{package_count});
 }
