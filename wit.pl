@@ -220,11 +220,21 @@ sub GetCPUInfo {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
         $processor->{name} =~ s/$re_intelghz//;
-        $processor->{cores} = FirstMatch($buffer, qr/cpu cores$re_cpu/m) or 1;
-        {
-            my $siblings = ($buffer =~ qr/siblings$re_cpu/m ? $1 : $processor->{cores}) or 1;
-            $processor->{ht} = ($processor->{cores} * 2 == $siblings);
+        
+        if($buffer =~ qr/cpu cores$re_cpu/m) {
+            $processor->{cores} = $1;
+        } elsif (not ($processor->{cores} =()= ($buffer =~ /processor$re_cpu/g))) { #if /cpu cores/ is not present fallback to somewhat less accurate processor counting.
+            $processor->{cores} = 1;
         }
+        if($buffer =~ qr/siblings$re_cpu/m){
+            $processor->{ht} = int($1 / $processor->{cores}) - 1;
+        } else {
+            $processor->{ht} = 0; #if we can't find it, assume it doesn't exist.
+        }
+#         {
+#             my $siblings = ($buffer =~ qr/siblings$re_cpu/m ? $1 : $processor->{cores}) or 1;
+#             $processor->{ht} = (($processor->{cores} * 2) == $siblings);
+#         }
         $processor->{freq} =  FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;
         $processor->{freq} = sprintf('%0.2f', $processor->{freq});
         undef $buffer;
@@ -517,7 +527,7 @@ if(HasContents($processor)) {
     PrintEntry('Model', $processor->{name});
     PrintEntry('Details', 
         ($processor->{cores} ? "$processor->{cores}-Cores " : undef)
-        . ($processor->{freq} ? "@ $processor->{freq}GHz " : undef)
+        . ($processor->{freq} ? "\@$processor->{freq}GHz " : undef)
         . ($processor->{ht} ? 'with hyperthreading' : '')
     );
 }
