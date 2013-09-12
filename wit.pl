@@ -262,12 +262,49 @@ sub GetMoboInfo {
     }
 }
 #==========================OPERATING SYSTEM
+#yes I cheated and generated this from a regex...
+my %wm_list = (
+    'awesome' => 'Awesome',
+    'beryl' => 'Beryl',
+    'blackbox' => 'Blackbox',
+    'cinnamon' => 'Cinnamon',
+    'compiz' => 'Compiz',
+    'dminiwm' => 'dminiwm',
+    'dwm' => 'DWM',
+    'e16' => 'E16',
+    'emerald' => 'Emerald',
+    'enlightenment' => 'E17',
+    'fluxbox' => 'FluxBox',
+    'fvwm' => 'FVWM',
+    'herbstluftwm' => 'herbstluftwm',
+    'icewm' => 'IceWM',
+    'kwin' => 'KWin',
+    'metacity' => 'Metacity',
+    'monsterwm' => 'monsterwm',
+    'musca' => 'Musca',
+    'openbox' => 'OpenBox',
+    'pekwm' => 'PekWM',
+    'ratpoison' => 'Ratpoison',
+    'sawfish' => 'Sawfish',
+    'scrotwm' => 'ScrotWM',
+    'spectrwm' => 'SpectrWM',
+    'stumpwm' => 'StumpWM',
+    'subtle' => 'subtle',
+    'wmaker' => 'WindowMaker',
+    'wmfs' => 'WMFS',
+    'wmii' => 'wmii',
+    'xfwm4' => 'Xfwm4', 
+    'xmonad' => 'XMonad',
+    'i3' => 'i3',
+);
+my @plist = `ps axco command`;
 my $os = {
     userhost => undef,
     kernel => undef,
     distro => undef,
     distro_version => undef,
     package_count => undef,
+    window_manager => undef,
 };
 
 sub GetOSInfo {
@@ -312,6 +349,19 @@ sub GetOSInfo {
     }
     $os->{package_count} = scalar @packages;
     undef @packages;
+    
+    if(CommithForth('ps')) {
+        fakeBreak: { #one of the things I hate about perl is this lame excuse of a loop break;
+            foreach my $wm (keys %wm_list) {
+                foreach my $pname(@plist) {
+                    if($pname =~ $wm) {
+                        $os->{window_manager} = $wm_list{$wm};
+                        last fakeBreak;
+                    }
+                }
+            }
+        }
+    }
 }
 #==========================MEMORY INFORMATION
 my $memory = {
@@ -437,6 +487,7 @@ if(HasContents($os)) {
     PrintEntry('Distro', ($os->{distro} ? "$os->{distro} " : '') . ($os->{distro_version} ? "$os->{distro_version} " : ''));
     PrintEntry('Kernel', $os->{kernel});
     PrintEntry("User\@Host", $os->{userhost});
+    PrintEntry('WindowManager', $os->{window_manager});
     PrintEntry('Packages', $os->{package_count});
 }
 
