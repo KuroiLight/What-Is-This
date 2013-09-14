@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -t
 ###
 #   What Is This (wit) 
 #   Simple Fast System Information
@@ -28,16 +28,31 @@ eval {
 };
 
 
-my $wit_version = '0.41.7';
+my $wit_version = '0.41.9';
 
 my @bins = sort 
-'/usr/local/bin/',
+'/usr/local/bin',
 '/usr/bin/',
-'/bin/',
-'/usr/local/sbin/',
-'/usr/sbin/',
-'/sbin/',
+'/bin',
+'/usr/local/sbin',
+'/usr/sbin',
+'/sbin',
 ;
+
+#untaint path
+$ENV{'PATH'} = undef;
+{
+    my $index = 0;
+    while ($index <= $#bins) {
+        my $b = $bins[$index];
+        if (-e -d $b) {
+            $ENV{'PATH'} .= (($index ? ':' : '') . "$b");
+            $index++;
+        } else {
+            splice @bins, $index, 1;
+        }
+    }
+}
 
 print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12" if ($] < 5.012);
 
@@ -51,7 +66,7 @@ my $value_color = '';
 #==========================You have been warned, hazardous material ahead.
 sub CommithForth ($) { #pass (cmd)
     foreach my $bin (@bins) {
-        return 1 if(-e "$bin$_[0]");
+        return 1 if(-e "$bin/$_[0]");
     }
     return 0;
 }
@@ -268,53 +283,57 @@ sub GetMoboInfo {
     }
 }
 #==========================OPERATING SYSTEM
-#WM List originally generated with regex, from the list in screenfetch, Though I am remaintaining it.
-#
-#other wms not on the list that I checked:
-# Ion - no longer active, active fork called 'notion'
-# PWM - superseded by Ion (lol); Historical...
-# amiwm - apparently still maintained, though not sure.
-
+#WM List originally generated with regex, from the list in screenfetch, Though I'm adding new/old ones not included.
 my %wm_list = (
-    'afterstep' => 'AfterStep',         #2months stable, still active #+1
-    'awesome' => 'Awesome',             # last stable 5 months
-    #'beryl' => 'Beryl',                #appears to have merged with compiz? though I may be wrong.
-    #'blackbox' => 'Blackbox',          # last stable 7 years ago, updates 5; is this still maintained?
-    'cinnamon' => 'Cinnamon',           #still active, though the process name may change to muffin in the future(?)
-    'cwm' => 'CalmWM',                  #active, mostly used on openbsd #+1
-    'compiz' => 'Compiz',               #still active
-    'dminiwm' => 'dminiwm',             #4 months since last commit
-    #'dwm' => 'DWM',                    #last stable 20 months ago, has since been forked by better alts.
-    #'e16' => 'E16',                    #superseded by E17
-    #'emerald' => 'Emerald',            #doesn't appear to be a WM in it self, just a window decorator that comes with compiz.
-    'enlightenment' => 'E17',           #still active
-    'fluxbox' => 'FluxBox',             #stable 6 months
-    'fvwm' => 'FVWM',                   #still active, 16 months
-    'herbstluftwm' => 'herbstluftwm',   #still active
-    'icewm' => 'IceWM',                 #recent commits
-    'jwm' => 'JWM',                     #active commits #+1
-    'kwin' => 'KWin',                   #active stable
-    'metacity' => 'Metacity',           #last stable 17 months ago; even though its been replaced I'll keep it on the list until it looks dead.
-    'monsterwm' => 'monsterwm',         #last code commit 9 months ago
-    #'musca' => 'Musca',        <-----------------
-    'mutter' => 'Mutter',               #new wm using wayland #+1
-    'openbox' => 'OpenBox',             #still active
-    #'pekwm' => 'PekWM',        <-----------------
-    'ratpoison' => 'Ratpoison',         #stable 4 months ago
-    #'sawfish' => 'Sawfish',    <-----------------
-    #'scrotwm' => 'ScrotWM',    <-----------------
-    #'spectrwm' => 'SpectrWM',  <-----------------
-    #'stumpwm' => 'StumpWM',    <-----------------
-    #twm                                #+1 <-----------------
-    'subtle' => 'subtle',               #commits recently
-    'wmaker' => 'WindowMaker',          #stable in august
-    'wmfs' => 'WMFS',                   #being replaced with wmfs2
-    #'wmii' => 'wmii',                  #last stable 3 years ago
-    'xfwm4' => 'Xfwm4',                 #still active
-    'xmonad' => 'XMonad',               #8 months; still active
-    'i3' => 'i3',                       #still active
+    'afterstep' => 'AfterStep',         #+
+    'awesome' => 'Awesome',             
+    'beryl' => 'Beryl',                #
+    'blackbox' => 'Blackbox',          #
+    'cinnamon' => 'Cinnamon',           
+    'cwm' => 'CalmWM',                  #+
+    'compiz' => 'Compiz',               
+    'dminiwm' => 'dminiwm',             
+    'dwm' => 'DWM',                    #
+    'e16' => 'E16',                    #
+    'emerald' => 'Emerald',            #
+    'enlightenment' => 'E17',           
+    'fluxbox' => 'FluxBox',             
+    'fvwm' => 'FVWM',                   
+    'herbstluftwm' => 'herbstluftwm',   
+    'icewm' => 'IceWM',                 
+    'jwm' => 'JWM',                     #+
+    'kwin' => 'KWin',                   
+    'metacity' => 'Metacity',           
+    'monsterwm' => 'monsterwm',         
+    'musca' => 'Musca',                 
+    'mutter' => 'Mutter',               #+
+    'openbox' => 'OpenBox',             
+    'pekwm' => 'PekWM',                 
+    'ratpoison' => 'Ratpoison',         
+    'sawfish' => 'Sawfish',             
+    'scrotwm' => 'ScrotWM',            #
+    'spectrwm' => 'SpectrWM',           
+    'stumpwm' => 'StumpWM',            #
+    #twm                                #
+    'subtle' => 'subtle',               
+    'wmaker' => 'WindowMaker',          
+    'wmfs' => 'WMFS',                   
+    'wmii' => 'wmii',                  #
+    'xfwm4' => 'Xfwm4',                 
+    'xmonad' => 'XMonad',               
+    'i3' => 'i3',                       
 );
-my @plist = `ps axco command`;
+
+my %desktops = (
+    'xfce4' => 'Xfce4',
+    'mate' => 'Mate',
+    'kde' => 'KDE',
+    'gnome' => 'GNOME',
+    'cinnamon' => 'Cinnamon',
+    'lx' => 'LXDE',
+    'jwm' => 'JWM',
+);
+
 my $os = {
     userhost => undef,
     kernel => undef,
@@ -322,6 +341,7 @@ my $os = {
     distro_version => undef,
     package_count => undef,
     window_manager => undef,
+    desktop_env => undef, #not always present
 };
 
 sub GetOSInfo {
@@ -330,7 +350,8 @@ sub GetOSInfo {
         $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_version/im);
         undef $buffer;
     }
-    $os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
+    #$os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
+    $os->{userhost} = $ENV{'USER'};
     do {
         my $host_name = FirstMatch(`hostname`, $re_anyword);
         $os->{userhost} .= ($host_name ? "\@$host_name" : '');
@@ -367,19 +388,35 @@ sub GetOSInfo {
     $os->{package_count} = scalar @packages;
     undef @packages;
     
-    if(CommithForth('ps')) {
-        fakeBreak: { #one of the things I hate about perl is this lame excuse of a loop break;
+    {
+        my @plist = `ps axco command`;
+        if(CommithForth('ps')) {
             foreach my $wm (keys %wm_list) {
-                foreach my $pname(@plist) {
-                    if($pname =~ qr/$wm/i) {
-                        $os->{window_manager} = $wm_list{$wm};
-                        last fakeBreak;
-                    }
+                if (grep(/$wm/, @plist)) {
+                    $os->{window_manager} = $wm_list{$wm};
+                    last;
                 }
             }
         }
+    
+        {
+            my $cur_highest = 0;
+            foreach my $de (keys %desktops) {
+                if(my $current = (my @occurrances = grep(/$de/i, @plist) )) {
+                    if($current > $cur_highest) {
+                        $os->{desktop_env} = $de;
+                        $cur_highest = $current;
+                    } elsif ($current == $cur_highest) {
+                        #TODO: check for session process
+                    }
+                }
+            }
+            $os->{desktop_env} = $desktops{$os->{desktop_env}};
+        }
+        undef @plist;
     }
 }
+
 #==========================MEMORY INFORMATION
 my $memory = {
     ram_used => undef,
@@ -508,7 +545,15 @@ if(HasContents($os)) {
     PrintEntry('Distro', ($os->{distro} ? "$os->{distro} " : '') . ($os->{distro_version} ? "$os->{distro_version} " : ''));
     PrintEntry('Kernel', $os->{kernel});
     PrintEntry('User@Host', $os->{userhost});
-    PrintEntry('WM', $os->{window_manager});
+    
+    #I know there are better ways to go about this but this is just a quick fix for now.
+    if($os->{desktop_env} and not $os->{window_manager}) {
+        PrintEntry('DE', $os->{desktop_env});
+    } elsif($os->{window_manager} and not $os->{desktop_env}) {
+        PrintEntry('WM', $os->{window_manager});
+    } elsif($os->{window_manager} and $os->{desktop_env}) {
+        PrintEntry('WM/DE', $os->{window_manager} . '/' . $os->{desktop_env});
+    }
     PrintEntry('Packages', $os->{package_count});
 }
 
