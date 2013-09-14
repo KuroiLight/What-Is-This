@@ -411,7 +411,7 @@ sub GetOSInfo {
                     }
                 }
             }
-            $os->{desktop_env} = $desktops{$os->{desktop_env}};
+            $os->{desktop_env} = $desktops{$os->{desktop_env}}; #delay resolving it just incase we needed to check for session process.
         }
         undef @plist;
     }
