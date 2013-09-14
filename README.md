@@ -14,6 +14,11 @@ complete merge of wia to wit, so its easier to manage;
 
 TLDR: do 'wit -l' to get the same functionality.
 
+####Update+1
+Reached 500 lines!
+
+Added rough WM/DE info.
+
 ##### Feature Progress
  - [x] distro and kernel
  - [x] processor
