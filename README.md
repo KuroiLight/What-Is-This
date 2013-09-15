@@ -33,10 +33,10 @@ Added rough WM/DE info.
  - [x] add package counting
 
 ##### Requirements
- - perl5 obviously (tested version 5.12>)
+ - perl5 obviously (tested on version 5.10-5.18)
  - some sysfs files
  - linux flavored procfs
- - whoami and hostname
+ - whoami(optional) and hostname
 
 
 ```
