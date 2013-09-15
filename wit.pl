@@ -1,4 +1,4 @@
-#!/usr/bin/perl -t
+#!/usr/bin/perl
 ###
 #   What Is This (wit) 
 #   Simple Fast System Information
@@ -54,7 +54,7 @@ $ENV{'PATH'} = undef;
     }
 }
 
-print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12" if ($] < 5.012);
+print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12\n\n" if ($] < 5.012);
 
 my $langs = 0;
 
@@ -128,9 +128,9 @@ sub Startup { #init code here
     }
     if($colors == 2) {
         $colors = 1 if ($Term::ANSIColor::VERSION < 4.00);
-        $title_color = color ( $colors ? 'rgb125' : 'blue');
-        $subtitle_color = color ( $colors ? 'rgb224' : 'green');
-        $value_color = color ( $colors ? 'rgb134' : 'cyan');
+        $title_color = color ( $colors == 2 ? 'rgb125' : 'blue');
+        $subtitle_color = color ( $colors == 2 ? 'rgb224' : 'green');
+        $value_color = color ( $colors == 2 ? 'rgb134' : 'cyan');
     }
 }
 
@@ -370,7 +370,13 @@ sub GetOSInfo {
 				$os->{distro} =~ s/[\n]*//;
 			}
 		}
+    } else {
+	    if(-e '/etc/debian_version') {
+		    $os->{distro} = 'Debian ' . (($buffer = ReadFile('/etc/debian_version')) ? $buffer : '');
+	    }
     }
+    $os->{distro} =~ s/[\n]+// if($os->{distro});
+		
     
     my @packages = 0;
     if(CommithForth('pacman')) { #Good ol' Arch (tested)
