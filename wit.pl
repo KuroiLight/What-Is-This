@@ -158,7 +158,7 @@ my %LISTS = (
     '1Programming' => [
         { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
         { name => 'HaXe', versioncmd => 'haxe -version', version => undef },
-        { name => 'Io', versioncmd => 'io --version', version => undef, edgecase => qr/(?<=v. )([\d]+)/ },
+        { name => 'Io', versioncmd => 'io --version', version => undef, edgecase => eval { qr/(?<=v. )([\d]+)/ }},
         { name => 'Lua', versioncmd => 'lua -v', version => undef },
         { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
         { name => 'Neko', versioncmd => 'neko', version => undef },
@@ -188,7 +188,7 @@ my %LISTS = (
         { name => 'gedit', versioncmd => 'gedit --version', version => undef },
         { name => 'jed', versioncmd => 'jed --version', version => undef },
         { name => 'Joe', versioncmd => 'joe', version => undef, altcmd => '' }, #no version option...
-        { name => 'Kate', versioncmd => 'kate --version', version => undef, edgecase => qr/(?<=Kate:[\s])($re_version)/ },
+        { name => 'Kate', versioncmd => 'kate --version', version => undef, edgecase => eval { qr/(?<=Kate:[\s])($re_version)/ }},
         { name => 'Leafpad', versioncmd => 'leafpad --version', version => undef },
         { name => 'medit', versioncmd => 'medit --version', version => undef },
         { name => 'mousepad', versioncmd => 'mousepad --version', version => undef },
@@ -232,7 +232,7 @@ sub GetCPUInfo {
     if($buffer) {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
-        $processor->{name} =~ s/$re_intelghz                //;
+        $processor->{name} =~ s/$re_intelghz//;
         
         if($buffer =~ qr/cpu cores$re_cpu/m) {
             $processor->{cores} = $1;
@@ -366,7 +366,7 @@ sub GetOSInfo {
             my $matching_file = $1;
             if(-e -r $matching_file) {
                 $os->{distro} = ReadFile($matching_file);
-                $os->{distro} =~ s/[\n]*                  //;
+                $os->{distro} =~ s/[\n]*//;
             }
         }
     } else {
@@ -374,7 +374,7 @@ sub GetOSInfo {
             $os->{distro} = 'Debian ' . (($buffer = ReadFile('/etc/debian_version')) ? $buffer : '');
         }
     }
-    $os->{distro} =~ s/[\n]+                                // if($os->{distro});
+    $os->{distro} =~ s/[\n]+// if($os->{distro});
     
     
     my @packages = 0;
