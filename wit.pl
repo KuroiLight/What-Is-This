@@ -110,12 +110,12 @@ sub Startup { #init code here
         } elsif($arg =~ /(-i|--install)/){ #start hackish code:
             my $abs_path = $ENV{'PWD'};
             print((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
-                or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -i')) or "setup failed\n")); #extra parenthesis help get the point across
+            or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -i')) or "setup failed\n")); #extra parenthesis help get the point across
             exit 0;
         } elsif($arg =~ /(-u|--uninstall)/){
             my $abs_path = $ENV{'PWD'};
             print((not (-e ($abs_path . '/setup_bashrc.pl')) and "setup script missing...\n")
-                or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -u')) or "setup failed\n"));
+            or ((not system('perl ' . $abs_path . '/setup_bashrc.pl -u')) or "setup failed\n"));
             exit 0;                         #end hackish code:
         } elsif($arg =~ /(-l|--langs)/){
             $langs = 1;
@@ -150,28 +150,28 @@ my %LISTS = (
     ],
     '0Shells' => [
         { name => 'Bash', versioncmd => 'bash --version', version => undef },
-        { name => 'Fish', versioncmd => 'fish --version 2>&1', version => undef },
+        { name => 'Fish', versioncmd => 'fish --version', version => undef },
         { name => 'Mksh', versioncmd => 'mksh', version => undef, altcmd => '' },
         { name => 'Tcsh', versioncmd => 'tcsh --version', version => undef },
         { name => 'Zsh', versioncmd => 'zsh --version', version => undef },
     ],
     '1Programming' => [
         { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
-        { name => 'HaXe', versioncmd => 'haxe -version 2>&1', version => undef },
+        { name => 'HaXe', versioncmd => 'haxe -version', version => undef },
         { name => 'Io', versioncmd => 'io --version', version => undef, edgecase => qr/(?<=v. )([\d]+)/ },
-        { name => 'Lua', versioncmd => 'lua -v 2>&1', version => undef },
+        { name => 'Lua', versioncmd => 'lua -v', version => undef },
         { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
         { name => 'Neko', versioncmd => 'neko', version => undef },
         { name => 'newLisp', versioncmd => 'newlisp -v', version => undef },
         { name => 'Perl5', versioncmd => 'perl --version', version => undef },
         { name => 'Perl6', versioncmd => 'perl6 -v', version => undef },
-        { name => 'Python2', versioncmd => 'python2 --version 2>&1', version => undef },
-        { name => 'Python3', versioncmd => 'python3 --version 2>&1', version => undef },
+        { name => 'Python2', versioncmd => 'python2 --version', version => undef },
+        { name => 'Python3', versioncmd => 'python3 --version', version => undef },
         { name => 'Racket', versioncmd => 'racket --version', version => undef },
         { name => 'Ruby', versioncmd => 'ruby --version', version => undef },
         { name => 'Squirrel', versioncmd => 'squirrel -v', version => undef },
-        { name => 'Tcl', versioncmd => 'tclsh', version => undef, altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh 2>&1"},
-        #compilers
+        { name => 'Tcl', versioncmd => 'tclsh', version => undef, altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh"},
+                    #compilers
         { name => 'GNAT Ada', versioncmd => 'gnat', version => undef },
         { name => 'Chicken', versioncmd => 'chicken -version', version => undef },
         { name => 'GCC', versioncmd => 'gcc --version', version => undef },
@@ -203,21 +203,19 @@ sub PopulateLists {
         foreach my $elem ( @{$LISTS{$vals}}) {
             if(($elem->{versioncmd} =~ qr/([\w]+)\ ?/) and CommithForth($1)) {
                 $elem->{version} = ( #for the love of god, if you can't read this, blame my cat.
-                    (
-                        (defined $elem->{altcmd} ? (scalar `$elem->{altcmd}`) : (scalar `$elem->{versioncmd}`)) #use altcmds if available
-                            =~ 
-                        (defined $elem->{edgecase} ? $elem->{edgecase} : $re_version) #use edge cases if available
-                            and $1
-                    )
-                        or ('unknown') #this is an edge case in it self...
+                (
+                    (defined $elem->{altcmd} ? (scalar `$elem->{altcmd} 2>&1`) : (scalar `$elem->{versioncmd} 2>&1`)) #use altcmds if available
+                    =~ 
+                    (defined $elem->{edgecase} ? $elem->{edgecase} : $re_version) #use edge cases if available
+                    and $1
+                )
+                or ('unknown') #this is an edge case in it self...
                 );
             }
         }
     }
 }
 #==========================CPU INFORMATION
-#fix plural for single cores
-#reminder again fix plural
 my $processor = {
     vendor => undef,
     name => undef,
@@ -234,7 +232,7 @@ sub GetCPUInfo {
     if($buffer) {
         $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
         $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
-        $processor->{name} =~ s/$re_intelghz//;
+        $processor->{name} =~ s/$re_intelghz                //;
         
         if($buffer =~ qr/cpu cores$re_cpu/m) {
             $processor->{cores} = $1;
@@ -349,13 +347,14 @@ sub GetOSInfo {
         $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_version/im);
         undef $buffer;
     }
-    #$os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
-    $os->{userhost} = $ENV{'USER'};
-    do {
-        my $host_name = FirstMatch(`hostname`, $re_anyword);
-        $os->{userhost} .= ($host_name ? "\@$host_name" : '');
-    } if (CommithForth('hostname'));
-
+    
+    if(not ($os->{userhost} = $ENV{'USER'})) {
+        $os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
+    }
+    if(CommithForth('hostname') and `hostname` =~ $re_anyword) {
+        $os->{userhost} .= ($1 ? "\@$1" : '');
+    }
+    
     if(($buffer = (ReadFile('/etc/lsb-release') or ReadFile('/etc/os-release')) )) {
         if($buffer) {
             $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_anyword/m);
@@ -363,20 +362,20 @@ sub GetOSInfo {
             undef $buffer;
         }
     } elsif((my $line =(grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0])) {
-		if($line =~ $re_anyword) {
-			my $matching_file = $1;
-			if(-e -r $matching_file) {
-				$os->{distro} = ReadFile($matching_file);
-				$os->{distro} =~ s/[\n]*//;
-			}
-		}
+        if($line =~ $re_anyword) {
+            my $matching_file = $1;
+            if(-e -r $matching_file) {
+                $os->{distro} = ReadFile($matching_file);
+                $os->{distro} =~ s/[\n]*                  //;
+            }
+        }
     } else {
-	    if(-e '/etc/debian_version') {
-		    $os->{distro} = 'Debian ' . (($buffer = ReadFile('/etc/debian_version')) ? $buffer : '');
-	    }
+        if(-e '/etc/debian_version') {
+            $os->{distro} = 'Debian ' . (($buffer = ReadFile('/etc/debian_version')) ? $buffer : '');
+        }
     }
-    $os->{distro} =~ s/[\n]+// if($os->{distro});
-		
+    $os->{distro} =~ s/[\n]+                                // if($os->{distro});
+    
     
     my @packages = 0;
     if(CommithForth('pacman')) { #Good ol' Arch (tested)
@@ -404,20 +403,26 @@ sub GetOSInfo {
                     last;
                 }
             }
-    
-            {
-                my $cur_highest = 0;
+            
+            {   #look for $de[\-\_]session process, to determine DE.
                 foreach my $de (keys %desktops) {
-                    if(my $current = (my @occurrances = grep(/$de/i, @plist) )) {
-                        if($current > $cur_highest) {
-                            $os->{desktop_env} = $de;
-                            $cur_highest = $current;
-                        } elsif ($current == $cur_highest) {
-                            #TODO: check for session process
-                        }
+                    if(my @occurrances = grep(/$de[\-\_]session/i, @plist)) {
+                        $os->{desktop_env} = $de;
+                        last;
                     }
                 }
-                $os->{desktop_env} = $desktops{$os->{desktop_env}} if ($os->{desktop_env}); #delay resolving it just incase we needed to check for session process.
+#                 if(not ($os->{desktop_env})) { #if no $de[\-\_]session found use guesswork, based on process list.
+#                     my $cur_highest = 0;
+#                     foreach my $de (keys %desktops) {
+#                         if(my $current = (my @occurrances = grep(/$de/i, @plist) )) {
+#                             if($current > $cur_highest) {
+#                                 $os->{desktop_env} = $de;
+#                                 $cur_highest = $current;
+#                             }
+#                         }
+#                     }
+#                 }
+                $os->{desktop_env} = $desktops{$os->{desktop_env}} if ($os->{desktop_env});
             }
             undef @plist;
         }
@@ -445,7 +450,7 @@ sub GetMemInfo {
             $memory->{ram_used} =int(($memory->{ram_total} - ($buffers + $cached + $memfree)) / 1024);
         }
         $memory->{ram_total} = int($memory->{ram_total} / 1024);
-    
+        
         $memory->{swap_total} = FirstMatch($buffer, qr/SwapTotal:$re_number/m);
         {
             my $cached = FirstMatch($buffer, qr/SwapCached:$re_number/m);
@@ -457,7 +462,6 @@ sub GetMemInfo {
     }
 }
 #==========================GPU INFORMATION (requires glxinfo atm)
-#no warnings => 'experimental::smartmatch'; #Whyyyyyyy!!! HOW CAN SOMETHING BE EXPIREMENTAL 'AND' DEPRECATED!!!!
 
 my $gpu = {
     vendor => undef,
@@ -472,17 +476,13 @@ my @driver_patterns = ( #needs proper patterns...
     qr/$re_version/,
 );
 
-#my $re_cardmatch = qr/(((?<=X\()|mesa|nvidia)[\s]?((([\d]+)\.)+[\d]+))/i; #WTF is this, and when did I write it?!?!
-
-#glxinfo is very slow...
-#may have to ask something else for gpu info instead... (>_<)
 sub GetGPUInfo {
     if(CommithForth('glxinfo')) {
         my @glx_data = `glxinfo`;
-
+        
         $gpu->{vendor} = (grep(/OpenGL vendor string/, @glx_data))[0];
         $gpu->{vendor} = $1 if($gpu->{vendor} =~ qr/\:\ ([\w\ ]+)/);
-
+        
         $gpu->{driver} = ((grep(/OpenGL core profile version string/, @glx_data))[0] or (grep(/OpenGL version string/, @glx_data))[0]);
         if($gpu->{driver}) {
             foreach my $regex(@driver_patterns) { #yes, I replaced a smartmatch with a foreach loop, forgive me.
@@ -492,12 +492,12 @@ sub GetGPUInfo {
                 }
             }
         }
-
+        
         $gpu->{card} = (grep(/OpenGL renderer string/, @glx_data))[0];
         if($gpu->{card}) {
-            $gpu->{card} = $1 if($gpu->{card} =~ qr/: ([\w\ \(\)\.\!]+)[\/]?/); # This is the ugliest regex i could come up with, with my limited abilities, sorry.
+            $gpu->{card} = $1 if($gpu->{card} =~ qr/:[\s]+([^\/\n]+)[\/]?/);
         }
-
+        
         undef @glx_data;
     }
 }
@@ -514,7 +514,6 @@ sub PrintList ($) {
     foreach my $elem (@{$list}) {
         if($elem->{version}) {
             PrintEntry($elem->{name}, (not ($elem->{version} eq 'unknown') ? 'v' : '') . $elem->{version});
-            #PrintEntry($elem->{name}, 'v' . $elem->{version});
         }
     }
 }
@@ -576,8 +575,8 @@ if(HasContents($processor)) {
     PrintEntry('Model', $processor->{name});
     PrintEntry('Details', 
                ($processor->{cores} ? "$processor->{cores}-Core" . ($processor->{cores} > 1 ? 's ' : ' ') : '')
-        . ($processor->{freq} ? "\@$processor->{freq}GHz " : '')
-        . ($processor->{ht} ? 'with hyperthreading' : '')
+               . ($processor->{freq} ? "\@$processor->{freq}GHz " : '')
+               . ($processor->{ht} ? 'with hyperthreading' : '')
     );
 }
 if(HasContents($gpu)){
