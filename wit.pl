@@ -331,7 +331,6 @@ my %desktops = (
     'gnome' => 'GNOME',
     'cinnamon' => 'Cinnamon',
     'lx' => 'LXDE',
-    'jwm' => 'JWM',
 );
 
 my $os = {
@@ -389,31 +388,31 @@ sub GetOSInfo {
     undef @packages;
     
     {
-        my @plist = `ps axco command`;
         if(CommithForth('ps')) {
+            my @plist = `ps axco command`;
             foreach my $wm (keys %wm_list) {
                 if (grep(/$wm/, @plist)) {
                     $os->{window_manager} = $wm_list{$wm};
                     last;
                 }
             }
-        }
     
-        {
-            my $cur_highest = 0;
-            foreach my $de (keys %desktops) {
-                if(my $current = (my @occurrances = grep(/$de/i, @plist) )) {
-                    if($current > $cur_highest) {
-                        $os->{desktop_env} = $de;
-                        $cur_highest = $current;
-                    } elsif ($current == $cur_highest) {
-                        #TODO: check for session process
+            {
+                my $cur_highest = 0;
+                foreach my $de (keys %desktops) {
+                    if(my $current = (my @occurrances = grep(/$de/i, @plist) )) {
+                        if($current > $cur_highest) {
+                            $os->{desktop_env} = $de;
+                            $cur_highest = $current;
+                        } elsif ($current == $cur_highest) {
+                            #TODO: check for session process
+                        }
                     }
                 }
+                $os->{desktop_env} = $desktops{$os->{desktop_env}}; #delay resolving it just incase we needed to check for session process.
             }
-            $os->{desktop_env} = $desktops{$os->{desktop_env}}; #delay resolving it just incase we needed to check for session process.
+            undef @plist;
         }
-        undef @plist;
     }
 }
 
