@@ -170,7 +170,7 @@ my %LISTS = (
         { name => 'Racket', versioncmd => 'racket --version', version => undef },
         { name => 'Ruby', versioncmd => 'ruby --version', version => undef },
         { name => 'Squirrel', versioncmd => 'squirrel -v', version => undef },
-        { name => 'Tcl', versioncmd => 'tclsh', version => undef, altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh"},
+        { name => 'Tcl', versioncmd => 'tclsh', version => undef, altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh 2>&1"},
         #compilers
         { name => 'GNAT Ada', versioncmd => 'gnat', version => undef },
         { name => 'Chicken', versioncmd => 'chicken -version', version => undef },
@@ -362,12 +362,14 @@ sub GetOSInfo {
             $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_anyword/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_anyword/m);
             undef $buffer;
         }
-    } elsif((grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0] =~ $re_anyword) {
-        my $matching_file = $1;
-        if(-e -r $matching_file) {
-            $os->{distro} = ReadFile($matching_file);
-            $os->{distro} =~ s/[\n]*//;
-        }
+    } elsif((my $line =(grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0])) {
+		if($line =~ $re_anyword) {
+			my $matching_file = $1;
+			if(-e -r $matching_file) {
+				$os->{distro} = ReadFile($matching_file);
+				$os->{distro} =~ s/[\n]*//;
+			}
+		}
     }
     
     my @packages = 0;
@@ -409,7 +411,7 @@ sub GetOSInfo {
                         }
                     }
                 }
-                $os->{desktop_env} = $desktops{$os->{desktop_env}}; #delay resolving it just incase we needed to check for session process.
+                $os->{desktop_env} = $desktops{$os->{desktop_env}} if ($os->{desktop_env}); #delay resolving it just incase we needed to check for session process.
             }
             undef @plist;
         }
