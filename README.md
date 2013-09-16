@@ -15,7 +15,7 @@ git -b master https://github.com/KuroiLight/What-Is-This.git
  
 ###### also recommended but optional
  - hostname, whoami and glxinfo binaries
- - Term::ANSIColor perl module.
+ - ~~Term::ANSIColor perl module.~~ (replaced with escape sequences)
  
 #####Create a symbolic link & make it executable
 Run the following commands in the wit directory (with sudo/root if needed)
