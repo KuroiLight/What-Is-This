@@ -481,7 +481,7 @@ sub GetGPUInfo {
         my @glx_data = `glxinfo`;
         
         $gpu->{vendor} = (grep(/OpenGL vendor string/, @glx_data))[0];
-        $gpu->{vendor} = $1 if($gpu->{vendor} =~ qr/\:\ ([\w\ ]+)/);
+        $gpu->{vendor} = $1 if($gpu->{vendor} =~ qr/\:\ ([\w\.\ ]+)/);
         
         $gpu->{driver} = ((grep(/OpenGL core profile version string/, @glx_data))[0] or (grep(/OpenGL version string/, @glx_data))[0]);
         if($gpu->{driver}) {
