@@ -14,7 +14,7 @@ What-Is-This
 #####Create a symbolic link & make it executable
 Run the following commands in the wit directory (with sudo/root if needed)
 ```
-ln -f -r -s ./wit.pl /usr/bin/wit
+ln -f -s ./wit.pl /usr/bin/wit
 chmod +x ./wit.pl
 ```
 
