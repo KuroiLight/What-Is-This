@@ -20,7 +20,7 @@ git -b master https://github.com/KuroiLight/What-Is-This.git
 #####Create a symbolic link & make it executable
 Run the following commands in the wit directory (with sudo/root if needed)
 ```
-ln -f -s ./wit.pl /usr/bin/wit
+ln -f -s <path-to-wit> /usr/bin/wit
 chmod +x ./wit.pl
 ```
 ---
