@@ -49,7 +49,7 @@ $ENV{'PATH'} = undef;
     }
 }
 
-print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12\n\n" if ($] < 5.012);
+#print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12\n\n" if ($] < 5.012);
 
 my $langs = 0;
 my $colors = 1;
@@ -99,8 +99,8 @@ sub Startup { #init code here
             print "\n\t-i,--install\tinstall to .bashrc";
             print "\n\t-u,--uninstall\tuninstall from .bashrc";
             print "\n\t-nl,--langs\tdisplay programming languages/editors";
-            print "\n\t-dc,--dim \tturns on dim colors\n";
-            print "\n\t-nc,--nocolor \tturns off colors completely\n";
+            print "\n\t-ac,--altcolors \tuses alternate color scheme\n";
+            print "\n\t-nc,--nocolors \tturns off colors completely\n";
             exit 0;
         } elsif($arg =~ /(-i|--install)/){ #start hackish code:
             my $abs_path = $ENV{'PWD'};
@@ -114,9 +114,9 @@ sub Startup { #init code here
             exit 0;                         #end hackish code:
         } elsif($arg =~ /(-l|--langs)/){
             $langs = 1;
-        } elsif($arg =~ /(-nc|--nocolor)/){
+        } elsif($arg =~ /(-nc|--nocolors)/){
             $colors = 0;
-        } elsif($arg =~ /-dc|--dim/){
+        } elsif($arg =~ /-ac|--altcolors/){
             $colors = 2;
         } else {
             print "Invalid option $arg\n";
@@ -124,10 +124,15 @@ sub Startup { #init code here
         }
     }
     if($colors) {
-        my $brightness = ($colors == 2 ? 2 : 1);
-        $title_color = ( $colors ? "\033[$brightness;32m" : '');
-        $subtitle_color = ( $colors ? "\033[$brightness;33m" : '');
-        $value_color = ( $colors ? "\033[$brightness;36m" : '');
+        if($colors == 1) {
+            $title_color = "\033[2;32m";
+            $subtitle_color = "\033[1;31m";
+            $value_color = "\033[1;34m";
+        } elsif ($colors == 2) {
+            $title_color = "\033[1;33m";
+            $subtitle_color = "\033[1;35m";
+            $value_color = "\033[1;36m";
+        }
     }
 }
 
