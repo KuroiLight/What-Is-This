@@ -28,7 +28,7 @@ eval {
 };
 
 
-my $wit_version = '0.42.0';
+my $wit_version = '0.41.9';
 
 my @bins = sort 
 '/usr/local/bin',

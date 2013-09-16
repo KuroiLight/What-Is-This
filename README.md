@@ -2,32 +2,41 @@ What-Is-This
 ============
 **What-Is-This (or wit) is a simple fast system information script written in perl, for linux.**
 
-###Installation
-#####Requirements
- - Perl 5 (tested on 5.10)
- - Linux proc and sys filesystems (for most functionality)
- 
-###### also recommended to have
- - hostname, whoami and glxinfo binaries
- - Term::ANSIColor perl module.
- 
-#####Create a symbolic link & make it executable
-Run the following commands in the wit directory (with sudo/root if needed)
-```
-ln -f -r -s ./wit.pl /usr/bin/wit
-chmod +x ./wit.pl
-```
+*sample screenshot-*
 
-#### Current Features/Preview
-```
-wit
-```
-![alt tag](https://raw.github.com/KuroiLight/What-Is-This/shots/main.png)
-```
-wit -l
-```
-![alt tag](https://raw.github.com/KuroiLight/What-Is-This/shots/extended.png)
+![alt tag](https://raw.github.com/KuroiLight/What-Is-This/master/latest_screenshot.png)
 
+It is very much a work in progress, and needs bug reports and portability testing.
+
+### Update+
+LongStory:
+complete merge of wia to wit, so its easier to manage;
+
+TLDR: do 'wit -l' to get the same functionality.
+
+####Update+1
+Reached 500 lines!
+
+Added rough WM/DE info.
+
+##### Feature Progress
+ - [x] distro and kernel
+ - [x] processor
+ - [x] memory
+ - [x] currently installed shells and their versions
+ - [x] currently installed interpreters/scripting languages (e.g. lua, perl...)
+ - [/] add more shells/interpreters
+ - [/] add gpu info *[wip]*
+ - [X] add mobo info
+ - [x] add proper cmd line switches
+ - [_] add terminal color detection
+ - [x] add package counting
+
+##### Requirements
+ - perl5 obviously (tested on version 5.10-5.18)
+ - some sysfs files
+ - linux flavored procfs
+ - whoami(optional) and hostname
 
 
 ```
