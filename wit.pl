@@ -18,11 +18,6 @@ use warnings; #lemme get my orange vest.
 ##
 
 eval {
-    require Term::ANSIColor;
-    Term::ANSIColor->import();
-};
-my $colors = ($@ ? 0 : 2);
-eval {
     require utf8;
     utf8->import();
 };
@@ -57,8 +52,7 @@ $ENV{'PATH'} = undef;
 print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12\n\n" if ($] < 5.012);
 
 my $langs = 0;
-
-my $bCOLORS256 = 1;
+my $colors = 1;
 my $title_color = '';
 my $subtitle_color = '';
 my $value_color = '';
@@ -105,7 +99,8 @@ sub Startup { #init code here
             print "\n\t-i,--install\tinstall to .bashrc";
             print "\n\t-u,--uninstall\tuninstall from .bashrc";
             print "\n\t-nl,--langs\tdisplay programming languages/editors";
-            print "\n\t-na,--nocolor\tdisplay colorless\n";
+            print "\n\t-dc,--dim \tturns on dim colors\n";
+            print "\n\t-nc,--nocolor \tturns off colors completely\n";
             exit 0;
         } elsif($arg =~ /(-i|--install)/){ #start hackish code:
             my $abs_path = $ENV{'PWD'};
@@ -119,24 +114,26 @@ sub Startup { #init code here
             exit 0;                         #end hackish code:
         } elsif($arg =~ /(-l|--langs)/){
             $langs = 1;
-        } elsif($arg =~ /(-na|--nocolor)/){
+        } elsif($arg =~ /(-nc|--nocolor)/){
             $colors = 0;
+        } elsif($arg =~ /-dc|--dim/){
+            $colors = 2;
         } else {
             print "Invalid option $arg\n";
             exit 1;
         }
     }
-    if($colors == 2) {
-        $colors = 1 if ($Term::ANSIColor::VERSION < 4.00);
-        $title_color = color ( $colors == 2 ? 'rgb125' : 'blue');
-        $subtitle_color = color ( $colors == 2 ? 'rgb224' : 'green');
-        $value_color = color ( $colors == 2 ? 'rgb134' : 'cyan');
+    if($colors) {
+        my $brightness = ($colors == 2 ? 2 : 1);
+        $title_color = ( $colors ? "\033[$brightness;32m" : '');
+        $subtitle_color = ( $colors ? "\033[$brightness;33m" : '');
+        $value_color = ( $colors ? "\033[$brightness;36m" : '');
     }
 }
 
 sub Cleanup {
     if ($colors) {
-        print (color('reset'));
+        print ("\033[0m");
     }
 }
 #==========================PROGRAM LISTS
