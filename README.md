@@ -35,6 +35,9 @@ wit -l
 ```
 ![alt tag](https://raw.github.com/KuroiLight/What-Is-This/screns/extended.png)
 
+#### Known issues
+ - Display of ati/amd video card information is unknown (I dont have access to any of these cards)
+ - Distro and Desktop Environment detection needs work, so it may not be correct at this time.
 
 ---
 ```
