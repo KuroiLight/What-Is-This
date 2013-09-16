@@ -20,19 +20,20 @@ git -b master https://github.com/KuroiLight/What-Is-This.git
 #####Create a symbolic link & make it executable
 Run the following commands in the wit directory (with sudo/root if needed)
 ```
-ln -f -s <path-to-wit> /usr/bin/wit
+ln -f -r -s ./wit.pl /usr/bin/wit
 chmod +x ./wit.pl
 ```
+
 ---
 #### Current Features/Preview
 ```
 wit
 ```
-![alt tag](https://raw.github.com/KuroiLight/What-Is-This/shots/main.png)
+![alt tag](https://raw.github.com/KuroiLight/What-Is-This/screns/main.png)
 ```
 wit -l
 ```
-![alt tag](https://raw.github.com/KuroiLight/What-Is-This/shots/extended.png)
+![alt tag](https://raw.github.com/KuroiLight/What-Is-This/screns/extended.png)
 
 
 ---
