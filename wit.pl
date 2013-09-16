@@ -23,7 +23,7 @@ eval {
 };
 
 
-my $wit_version = '0.41.9';
+my $wit_version = '0.42.1';
 
 my @bins = sort 
 '/usr/local/bin',
@@ -93,14 +93,12 @@ sub Startup { #init code here
             exit 0;
         } elsif($arg =~ /(-h|--help)/){
             print "What-Is-This (wit) version $wit_version.\n";
-            print "Help:\n  wit.pl\t<options>";
-            print "\n\t-v,--version\tdisplay version and exit";
-            print "\n\t-h,--help\tdisplay this help and exit";
-            print "\n\t-i,--install\tinstall to .bashrc";
-            print "\n\t-u,--uninstall\tuninstall from .bashrc";
-            print "\n\t-nl,--langs\tdisplay programming languages/editors";
-            print "\n\t-ac,--altcolors \tuses alternate color scheme\n";
-            print "\n\t-nc,--nocolors \tturns off colors completely\n";
+            print "Help:\n  wit <options>";
+            print "\n\t-v,--version\t\tdisplay version and exit";
+            print "\n\t-h,--help\t\tdisplay this help and exit";
+            print "\n\t-l,--langs\t\tdisplay programming languages/editors";
+            print "\n\t-ac,--altcolors\t\tuses alternate color scheme";
+            print "\n\t-nc,--nocolors \t\tturns off colors completely\n";
             exit 0;
         } elsif($arg =~ /(-i|--install)/){ #start hackish code:
             my $abs_path = $ENV{'PWD'};
