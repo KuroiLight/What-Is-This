@@ -140,7 +140,7 @@ sub Cleanup {
     }
 }
 #==========================PROGRAM LISTS
-my $re_version = eval { qr/((([\d]+)\.)+[\d]+)/im };
+my $re_version = eval { qr/((?:(?:[\d]+)\.)+[\d]+)/im };
 
 my %LISTS = (
     '3Tools' => [
@@ -160,7 +160,7 @@ my %LISTS = (
         { name => 'Falcon',      versioncmd => 'falcon -v',            version => undef },
         { name => 'HaXe',        versioncmd => 'haxe -version',        version => undef },
         { name => 'Io',          versioncmd => 'io --version',         version => undef,
-            edgecase => eval { qr/(?<=v. )([\d]+)/ }},
+            edgecase => eval { qr/(?:v\.[\s])([\d]+)/ }},
         { name => 'Lua',         versioncmd => 'lua -v',               version => undef },
         { name => 'MoonScript',  versioncmd => 'moon -v',              version => undef },
         { name => 'Neko',        versioncmd => 'neko',                 version => undef },
@@ -193,7 +193,7 @@ my %LISTS = (
         { name => 'Joe',         versioncmd => 'joe',                  version => undef,
             altcmd => '' }, #no version option...
         { name => 'Kate',        versioncmd => 'kate --version',       version => undef,
-            edgecase => eval { qr/(?<=Kate:[\s])($re_version)/ }},
+            edgecase => eval { qr/(?:Kate:[\s])($re_version)/ }},
         { name => 'Leafpad',     versioncmd => 'leafpad --version',    version => undef },
         { name => 'medit',       versioncmd => 'medit --version',      version => undef },
         { name => 'mousepad',    versioncmd => 'mousepad --version',   version => undef },
@@ -433,7 +433,7 @@ my $memory = {
     swap_total => undef,
 };
 
-my $re_number = eval { qr/\s*([\d]+)/ };
+my $re_number = eval { qr/[\s]*([\d]+)/ };
 
 sub GetMemInfo {
     my $buffer = ReadFile('/proc/meminfo');
