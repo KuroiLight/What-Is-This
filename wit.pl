@@ -123,13 +123,13 @@ sub Startup { #init code here
     }
     if($colors) {
         if($colors == 1) {
-            $title_color = "\033[2;32m";
+            $title_color = "\033[1;33m";
             $subtitle_color = "\033[1;31m";
             $value_color = "\033[1;34m";
         } elsif ($colors == 2) {
-            $title_color = "\033[1;33m";
-            $subtitle_color = "\033[1;35m";
-            $value_color = "\033[1;36m";
+            $title_color = "\033[2;33m";
+            $subtitle_color = "\033[2;35m";
+            $value_color = "\033[2;36m";
         }
     }
 }
@@ -144,57 +144,63 @@ my $re_version = eval { qr/((([\d]+)\.)+[\d]+)/im };
 
 my %LISTS = (
     '3Tools' => [
-        { name => 'awk', versioncmd => 'awk --version', version => undef },
-        { name => 'grep', versioncmd => 'grep --version', version => undef },
-        { name => 'sed', versioncmd => 'sed --version', version => undef },
+        { name => 'awk',         versioncmd => 'awk --version',        version => undef },
+        { name => 'grep',        versioncmd => 'grep --version',       version => undef },
+        { name => 'sed',         versioncmd => 'sed --version',        version => undef },
     ],
     '0Shells' => [
-        { name => 'Bash', versioncmd => 'bash --version', version => undef },
-        { name => 'Fish', versioncmd => 'fish --version', version => undef },
-        { name => 'Mksh', versioncmd => 'mksh', version => undef, altcmd => '' },
-        { name => 'Tcsh', versioncmd => 'tcsh --version', version => undef },
-        { name => 'Zsh', versioncmd => 'zsh --version', version => undef },
+        { name => 'Bash',        versioncmd => 'bash --version',       version => undef },
+        { name => 'Fish',        versioncmd => 'fish --version',       version => undef },
+        { name => 'Mksh',        versioncmd => 'mksh',                 version => undef,
+            altcmd => '' },
+        { name => 'Tcsh',        versioncmd => 'tcsh --version',       version => undef },
+        { name => 'Zsh',         versioncmd => 'zsh --version',        version => undef },
     ],
     '1Programming' => [
-        { name => 'Falcon', versioncmd => 'falcon -v', version => undef },
-        { name => 'HaXe', versioncmd => 'haxe -version', version => undef },
-        { name => 'Io', versioncmd => 'io --version', version => undef, edgecase => eval { qr/(?<=v. )([\d]+)/ }},
-        { name => 'Lua', versioncmd => 'lua -v', version => undef },
-        { name => 'MoonScript', versioncmd => 'moon -v', version => undef },
-        { name => 'Neko', versioncmd => 'neko', version => undef },
-        { name => 'newLisp', versioncmd => 'newlisp -v', version => undef },
-        { name => 'Perl5', versioncmd => 'perl --version', version => undef },
-        { name => 'Perl6', versioncmd => 'perl6 -v', version => undef },
-        { name => 'Python2', versioncmd => 'python2 --version', version => undef },
-        { name => 'Python3', versioncmd => 'python3 --version', version => undef },
-        { name => 'Racket', versioncmd => 'racket --version', version => undef },
-        { name => 'Ruby', versioncmd => 'ruby --version', version => undef },
-        { name => 'Squirrel', versioncmd => 'squirrel -v', version => undef },
-        { name => 'Tcl', versioncmd => 'tclsh', version => undef, altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh"},
+        { name => 'Falcon',      versioncmd => 'falcon -v',            version => undef },
+        { name => 'HaXe',        versioncmd => 'haxe -version',        version => undef },
+        { name => 'Io',          versioncmd => 'io --version',         version => undef,
+            edgecase => eval { qr/(?<=v. )([\d]+)/ }},
+        { name => 'Lua',         versioncmd => 'lua -v',               version => undef },
+        { name => 'MoonScript',  versioncmd => 'moon -v',              version => undef },
+        { name => 'Neko',        versioncmd => 'neko',                 version => undef },
+        { name => 'newLisp',     versioncmd => 'newlisp -v',           version => undef },
+        { name => 'Perl5',       versioncmd => 'perl --version',       version => undef },
+        { name => 'Perl6',       versioncmd => 'perl6 -v',             version => undef },
+        { name => 'Python2',     versioncmd => 'python2 --version',    version => undef },
+        { name => 'Python3',     versioncmd => 'python3 --version',    version => undef },
+        { name => 'Racket',      versioncmd => 'racket --version',     version => undef },
+        { name => 'Ruby',        versioncmd => 'ruby --version',       version => undef },
+        { name => 'Squirrel',    versioncmd => 'squirrel -v',          version => undef },
+        { name => 'Tcl',         versioncmd => 'tclsh',                version => undef,
+            altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh"},
                     #compilers
-        { name => 'GNAT Ada', versioncmd => 'gnat', version => undef },
-        { name => 'Chicken', versioncmd => 'chicken -version', version => undef },
-        { name => 'GCC', versioncmd => 'gcc --version', version => undef },
-        { name => 'Guile', versioncmd => 'guile -v', version => undef },
-        { name => 'Rust', versioncmd => 'rust --version', version => undef },
-        { name => 'Vala', versioncmd => 'valac --version', version => undef },
-        { name => 'Ypsilon', versioncmd => 'ypsilon --version', version => undef },
+        { name => 'GNAT Ada',    versioncmd => 'gnat',                 version => undef },
+        { name => 'Chicken',     versioncmd => 'chicken -version',     version => undef },
+        { name => 'GCC',         versioncmd => 'gcc --version',        version => undef },
+        { name => 'Guile',       versioncmd => 'guile -v',             version => undef },
+        { name => 'Rust',        versioncmd => 'rust --version',       version => undef },
+        { name => 'Vala',        versioncmd => 'valac --version',      version => undef },
+        { name => 'Ypsilon',     versioncmd => 'ypsilon --version',    version => undef },
     ],
     '2Editors' => [
-        { name => 'dex', versioncmd => 'dex -V', version => undef }, #simply displays 'no-version' last I checked.
-        { name => 'Diakonos', versioncmd => 'diakonos --version', version => undef },
-        { name => 'Emacs', versioncmd => 'emacs --version', version => undef },
-        { name => 'geany', versioncmd => 'geany --version', version => undef },
-        { name => 'gedit', versioncmd => 'gedit --version', version => undef },
-        { name => 'jed', versioncmd => 'jed --version', version => undef },
-        { name => 'Joe', versioncmd => 'joe', version => undef, altcmd => '' }, #no version option...
-        { name => 'Kate', versioncmd => 'kate --version', version => undef, edgecase => eval { qr/(?<=Kate:[\s])($re_version)/ }},
-        { name => 'Leafpad', versioncmd => 'leafpad --version', version => undef },
-        { name => 'medit', versioncmd => 'medit --version', version => undef },
-        { name => 'mousepad', versioncmd => 'mousepad --version', version => undef },
-        { name => 'nano', versioncmd => 'nano --version', version => undef },
-        { name => 'vi', versioncmd => 'vi', version => undef, altcmd => '' }, #can't get vi version info from cli switch, so just check if it exists.
-        { name => 'Vim', versioncmd => 'vim --version', version => undef },
+        { name => 'dex',         versioncmd => 'dex -V',               version => undef }, #simply displays 'no-version' last I checked.
+        { name => 'Diakonos',    versioncmd => 'diakonos --version',   version => undef },
+        { name => 'Emacs',       versioncmd => 'emacs --version',      version => undef },
+        { name => 'geany',       versioncmd => 'geany --version',      version => undef },
+        { name => 'gedit',       versioncmd => 'gedit --version',      version => undef },
+        { name => 'jed',         versioncmd => 'jed --version',        version => undef },
+        { name => 'Joe',         versioncmd => 'joe',                  version => undef,
+            altcmd => '' }, #no version option...
+        { name => 'Kate',        versioncmd => 'kate --version',       version => undef,
+            edgecase => eval { qr/(?<=Kate:[\s])($re_version)/ }},
+        { name => 'Leafpad',     versioncmd => 'leafpad --version',    version => undef },
+        { name => 'medit',       versioncmd => 'medit --version',      version => undef },
+        { name => 'mousepad',    versioncmd => 'mousepad --version',   version => undef },
+        { name => 'nano',        versioncmd => 'nano --version',       version => undef },
+        { name => 'vi',          versioncmd => 'vi',                   version => undef,
+            altcmd => '' }, #can't get vi version info from cli switch, so just check if it exists.
+        { name => 'Vim',         versioncmd => 'vim --version',        version => undef },
     ],
 );
 
@@ -205,7 +211,7 @@ sub PopulateLists {
                 $elem->{version} = ( #for the love of god, if you can't read this, blame my cat.
                 (
                     (defined $elem->{altcmd} ? (scalar `$elem->{altcmd} 2>&1`) : (scalar `$elem->{versioncmd} 2>&1`)) #use altcmds if available
-                    =~ 
+                    =~
                     (defined $elem->{edgecase} ? $elem->{edgecase} : $re_version) #use edge cases if available
                     and $1
                 )
@@ -282,44 +288,45 @@ sub GetMoboInfo {
 }
 #==========================OPERATING SYSTEM
 #WM List originally generated with regex, from the list in screenfetch, Though I'm adding new/old ones not included.
+# #=depracated; #+=added
 my %wm_list = (
-    'afterstep' => 'AfterStep',         #+
-    'awesome' => 'Awesome',             
-    'beryl' => 'Beryl',                #
-    'blackbox' => 'Blackbox',          #
-    'cinnamon' => 'Cinnamon',           
-    'cwm' => 'CalmWM',                  #+
-    'compiz' => 'Compiz',               
-    'dminiwm' => 'dminiwm',             
-    'dwm' => 'DWM',                    #
-    'e16' => 'E16',                    #
-    'emerald' => 'Emerald',            #
-    'enlightenment' => 'E17',           
-    'fluxbox' => 'FluxBox',             
-    'fvwm' => 'FVWM',                   
-    'herbstluftwm' => 'herbstluftwm',   
-    'icewm' => 'IceWM',                 
-    'jwm' => 'JWM',                     #+
-    'kwin' => 'KWin',                   
-    'metacity' => 'Metacity',           
-    'monsterwm' => 'monsterwm',         
-    'musca' => 'Musca',                 
-    'mutter' => 'Mutter',               #+
-    'openbox' => 'OpenBox',             
-    'pekwm' => 'PekWM',                 
-    'ratpoison' => 'Ratpoison',         
-    'sawfish' => 'Sawfish',             
-    'scrotwm' => 'ScrotWM',            #
-    'spectrwm' => 'SpectrWM',           
-    'stumpwm' => 'StumpWM',            #
+    'afterstep'     =>      'AfterStep',         #+
+    'awesome'       =>        'Awesome',             
+    'beryl'         =>          'Beryl',                #
+    'blackbox'      =>       'Blackbox',          #
+    'cinnamon'      =>       'Cinnamon',           
+    'cwm'           =>         'CalmWM',                  #+
+    'compiz'        =>         'Compiz',               
+    'dminiwm'       =>        'dminiwm',             
+    'dwm'           =>            'DWM',                    #
+    'e16'           =>            'E16',                    #
+    'emerald'       =>        'Emerald',            #
+    'enlightenment' =>            'E17',           
+    'fluxbox'       =>        'FluxBox',             
+    'fvwm'          =>           'FVWM',                   
+    'herbstluftwm'  =>   'herbstluftwm',   
+    'icewm'         =>          'IceWM',                 
+    'jwm'           =>            'JWM',                     #+
+    'kwin'          =>           'KWin',                   
+    'metacity'      =>       'Metacity',           
+    'monsterwm'     =>      'monsterwm',         
+    'musca'         =>          'Musca',                 
+    'mutter'        =>         'Mutter',               #+
+    'openbox'       =>        'OpenBox',             
+    'pekwm'         =>          'PekWM',                 
+    'ratpoison'     =>      'Ratpoison',         
+    'sawfish'       =>        'Sawfish',             
+    'scrotwm'       =>        'ScrotWM',            #
+    'spectrwm'      =>       'SpectrWM',           
+    'stumpwm'       =>        'StumpWM',            #
     #twm                                #
-    'subtle' => 'subtle',               
-    'wmaker' => 'WindowMaker',          
-    'wmfs' => 'WMFS',                   
-    'wmii' => 'wmii',                  #
-    'xfwm4' => 'Xfwm4',                 
-    'xmonad' => 'XMonad',               
-    'i3' => 'i3',                       
+    'subtle'        =>         'subtle',               
+    'wmaker'        =>    'WindowMaker',          
+    'wmfs'          =>           'WMFS',                   
+    'wmii'          =>           'wmii',                  #
+    'xfwm4'         =>          'Xfwm4',                 
+    'xmonad'        =>         'XMonad',               
+    'i3'            =>             'i3',                       
 );
 
 my %desktops = (
@@ -411,17 +418,6 @@ sub GetOSInfo {
                         last;
                     }
                 }
-#                 if(not ($os->{desktop_env})) { #if no $de[\-\_]session found use guesswork, based on process list.
-#                     my $cur_highest = 0;
-#                     foreach my $de (keys %desktops) {
-#                         if(my $current = (my @occurrances = grep(/$de/i, @plist) )) {
-#                             if($current > $cur_highest) {
-#                                 $os->{desktop_env} = $de;
-#                                 $cur_highest = $current;
-#                             }
-#                         }
-#                     }
-#                 }
                 $os->{desktop_env} = $desktops{$os->{desktop_env}} if ($os->{desktop_env});
             }
             undef @plist;
