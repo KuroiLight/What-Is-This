@@ -23,7 +23,7 @@ eval {
 };
 
 
-my $wit_version = '0.42.1';
+my $wit_version = '0.42.2';
 
 my @bins = sort 
 '/usr/local/bin',
@@ -140,7 +140,8 @@ sub Cleanup {
     }
 }
 #==========================PROGRAM LISTS
-my $re_version = eval { qr/((?:(?:[\d]+)\.)+[\d]+)/im };
+#my $re_version = eval { qr/((?:(?:[\d]+)\.)+[\d]+)/im };
+my $re_version = qr/((?:(?:[\d]){1,3}[\.]){1,3}(?:[\d]){1,3})/;
 
 my %LISTS = (
     '3Tools' => [
@@ -368,7 +369,7 @@ sub GetOSInfo {
             $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_anyword/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_anyword/m);
             undef $buffer;
         }
-    } elsif((my $line =(grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0])) {
+    } elsif((my $line =(grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0])) { #propose: /([\w]+-release|[\w]+_version)$/
         if($line =~ $re_anyword) {
             my $matching_file = $1;
             if(-e -r $matching_file) {
@@ -387,7 +388,7 @@ sub GetOSInfo {
     my @packages = 0;
     if(CommithForth('pacman')) { #Good ol' Arch (tested)
         @packages = (`pacman -Qq`);
-    } elsif(-e -d '/var/db/pkg/') { #Gentoo (untested and I have no clue how different a gentoo environment may be)
+    } elsif(-e -d '/var/db/pkg/') { #Gentoo (untested)
         @packages = (`ls -d -1 /var/db/pkg/*/*`);
     } elsif (CommithForth('dpkg')) { #Ubuntu (tested)
         @packages = (grep (/ii/, `dpkg -l 2>&1`));
@@ -395,9 +396,9 @@ sub GetOSInfo {
         @packages = (`ls -1 /var/log/packages`);
     } elsif(CommithForth('rpm')) { #Suse/RedHat (untested will test later)
         @packages = (`rpm -qa`);
-    } elsif(CommithForth('pkg_info')) { #BSD (untested maybe later)
-        @packages = (`pkg_info`);
-    }
+    } #elsif(CommithForth('pkg_info')) { #BSD (untested maybe later)
+#         @packages = (`pkg_info`);
+#     }
     $os->{package_count} = scalar @packages;
     undef @packages;
     
