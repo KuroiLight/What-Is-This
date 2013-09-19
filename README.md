@@ -14,7 +14,7 @@ git -b master https://github.com/KuroiLight/What-Is-This.git
  - Linux proc and sys filesystems (for most functionality)
  
 ###### also recommended but optional
- - hostname, whoami and glxinfo binaries
+ - ~~hostname, whoami and glxinfo binaries~~ (being replaced)
  - ~~Term::ANSIColor perl module.~~ (replaced with escape sequences)
  
 #####Create a symbolic link & make it executable
