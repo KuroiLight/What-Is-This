@@ -121,6 +121,7 @@ sub Startup { #init code here
             exit 1;
         }
     }
+    $colors = 0 if(`tput colors 2>&1` < 8);
     if($colors) {
         if($colors == 1) {
             $title_color = "\033[1;33m";
