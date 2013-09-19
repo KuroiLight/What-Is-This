@@ -224,11 +224,9 @@ sub PopulateLists {
 }
 #==========================CPU INFORMATION
 my $processor = {
-    vendor => undef,
-    name => undef,
-    cores => undef,
-    ht => undef,
-    freq => undef,
+    '1Vendor' => undef,
+    '2Model' => undef,
+    '3Details' => undef,
 };
 
 my $re_cpu = eval { qr/[\t\:\ ]+(.+)[\W]+/ };
@@ -237,30 +235,46 @@ my $re_intelghz = eval { qr/\ \@.+/ };
 sub GetCPUInfo {
     my $buffer = ReadFile('/proc/cpuinfo');
     if($buffer) {
-        $processor->{vendor} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
-        $processor->{name} = FirstMatch($buffer, qr/model name$re_cpu/m);
-        $processor->{name} =~ s/$re_intelghz//;
+        $processor->{'1Vendor'} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
+        $processor->{'2Model'} = FirstMatch($buffer, qr/model name$re_cpu/m);
+        $processor->{'2Model'} =~ s/$re_intelghz//;
         
+        my $cores;
         if($buffer =~ qr/cpu cores$re_cpu/m) {
-            $processor->{cores} = $1;
-        } elsif (not ($processor->{cores} =()= ($buffer =~ /processor$re_cpu/g))) { #if /cpu cores/ is not present fallback to somewhat less accurate processor counting.
-            $processor->{cores} = 1;
+            $processor->{'3Details'} = $1;
+        } elsif (not ($processor->{'3Details'} =()= ($buffer =~ /processor$re_cpu/g))) { #if /cpu cores/ is not present fallback to somewhat less accurate processor counting.
+            $processor->{'3Details'} = 1;
         }
-        if($buffer =~ qr/siblings$re_cpu/m){
-            $processor->{ht} = int($1 / $processor->{cores}) - 1;
+        $cores = $processor->{'3Details'};
+        if($processor->{'3Details'} > 1) {
+            $processor->{'3Details'} .= "-Cores ";
+        } elsif($processor->{'3Details'} == 1) {
+            $processor->{'3Details'} .= "-Core ";
+        }
+        
+        my $freq;
+        if(-e '/sys/bus/cpu/devices/cpu0/cpufreq/bios_limit') { #more accurate
+            $freq = sprintf('%0.2f', (ReadFile('/sys/bus/cpu/devices/cpu0/cpufreq/bios_limit') / 1000000))
         } else {
-            $processor->{ht} = 0; #if we can't find it, assume it doesn't exist.
+            $freq =  FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;
+            $freq = sprintf('%0.2f', $freq);
         }
-        $processor->{freq} =  FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;
-        $processor->{freq} = sprintf('%0.2f', $processor->{freq});
+        $processor->{'3Details'} .= ($processor->{'3Details'} ? '@' : '') . $freq . 'GHz ' if($freq);
+        
+        if($buffer =~ qr/siblings$re_cpu/m){
+            my $sibs = $1;
+            $processor->{'3Details'} .= (
+                (int($sibs / $cores) - 1) ? 'HyperThreaded' : ''
+            );
+        }
         undef $buffer;
     }
 }
 #==========================MOTHERBOARD
 my $motherboard = {
-    vendor => undef,
-    board => undef,
-    bios => undef,
+    '1Vendor' => undef,
+    '2Board' => undef,
+    '3Bios' => undef,
 };
 
 my $re_anyword = eval { qr/(.+)/ };
@@ -268,22 +282,22 @@ my $re_anyword = eval { qr/(.+)/ };
 sub GetMoboInfo {
     my $buffer = ReadFile('/sys/class/dmi/id/board_vendor');
     if($buffer) {
-        $motherboard->{vendor} = FirstMatch($buffer, $re_anyword);
+        $motherboard->{'1Vendor'} = FirstMatch($buffer, $re_anyword);
         undef $buffer;
     }
     $buffer = ReadFile('/sys/class/dmi/id/board_name');
     if($buffer) {
-        $motherboard->{board} = FirstMatch($buffer, $re_anyword);
+        $motherboard->{'2Board'} = FirstMatch($buffer, $re_anyword);
         undef $buffer;
     }
     $buffer = ReadFile('/sys/class/dmi/id/bios_vendor');
     if($buffer) {
-        $motherboard->{bios} = FirstMatch($buffer, $re_anyword);
+        $motherboard->{'3Bios'} = FirstMatch($buffer, $re_anyword);
         undef $buffer;
     }
     $buffer = ReadFile('/sys/class/dmi/id/bios_version');
     if($buffer) {
-        $motherboard->{bios} .= ' (' . FirstMatch($buffer, $re_anyword) . ')';
+        $motherboard->{'3Bios'} .= ' (' . FirstMatch($buffer, $re_anyword) . ')';
         undef $buffer;
     }
 }
@@ -340,49 +354,49 @@ my %desktops = (
 );
 
 my $os = {
-    userhost => undef,
-    kernel => undef,
-    distro => undef,
-    distro_version => undef,
-    package_count => undef,
-    window_manager => undef,
-    desktop_env => undef, #not always present
+    '1Distro' => undef,
+    '3User@Host' => undef,
+    '2Kernel' => undef,
+    '4WM/DE' => undef,
+    '5Packages' => undef,
 };
 
 sub GetOSInfo {
     my $buffer = ReadFile('/proc/version');
     if($buffer) {
-        $os->{kernel} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_version/im);
+        $os->{'2Kernel'} = FirstMatch($buffer, qr/^([\w]+) version /im) . ' ' . FirstMatch($buffer, qr/version $re_version/im);
         undef $buffer;
     }
     
-    if(not ($os->{userhost} = $ENV{'USER'})) {
-        $os->{userhost} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
+    if(not ($os->{'3User@Host'} = $ENV{'USER'})) {
+        $os->{'3User@Host'} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
     }
-    if(CommithForth('hostname') and `hostname` =~ $re_anyword) {
-        $os->{userhost} .= ($1 ? "\@$1" : '');
+    if(-e '/proc/sys/kernel/hostname') { #much faster
+        chomp ($os->{'3User@Host'} .= "@" . ReadFile('/proc/sys/kernel/hostname'));
+    } elsif(CommithForth('hostname') and `hostname` =~ $re_anyword) {
+        $os->{'3User@Host'} .= ($1 ? "\@$1" : '');
     }
     
     if(($buffer = (ReadFile('/etc/lsb-release') or ReadFile('/etc/os-release')) )) {
         if($buffer) {
-            $os->{distro} = FirstMatch($buffer, qr/DISTRIB_ID=$re_anyword/m);
-            $os->{distro_version} = FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_anyword/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_anyword/m);
+            $os->{'1Distro'} = FirstMatch($buffer, qr/DISTRIB_ID=$re_anyword/m);
+            $os->{'1Distro'} .= ' ' . FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_anyword/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_anyword/m);
             undef $buffer;
         }
     } elsif((my $line =(grep(/([\w]+-release)$/, `ls -1 /etc/*-release 2>&1`))[0])) { #propose: /([\w]+-release|[\w]+_version)$/
         if($line =~ $re_anyword) {
             my $matching_file = $1;
             if(-e -r $matching_file) {
-                $os->{distro} = ReadFile($matching_file);
-                $os->{distro} =~ s/[\n]*//;
+                $os->{'1Distro'} = ReadFile($matching_file);
+                $os->{'1Distro'} =~ s/[\n]*//;
             }
         }
     } else {
         if(-e '/etc/debian_version') {
-            $os->{distro} = 'Debian ' . (($buffer = ReadFile('/etc/debian_version')) ? $buffer : '');
+            $os->{'1Distro'} = 'Debian ' . (($buffer = ReadFile('/etc/debian_version')) ? $buffer : '');
         }
     }
-    $os->{distro} =~ s/[\n]+// if($os->{distro});
+    $os->{'1Distro'} =~ s/[\n]+// if($os->{'1Distro'});
     
     
     my @packages = 0;
@@ -399,7 +413,7 @@ sub GetOSInfo {
     } #elsif(CommithForth('pkg_info')) { #BSD (untested maybe later)
 #         @packages = (`pkg_info`);
 #     }
-    $os->{package_count} = scalar @packages;
+    $os->{'5Packages'} = scalar @packages;
     undef @packages;
     
     {
@@ -407,19 +421,24 @@ sub GetOSInfo {
             my @plist = `ps axco command`;
             foreach my $wm (keys %wm_list) {
                 if (grep(/$wm/, @plist)) {
-                    $os->{window_manager} = $wm_list{$wm};
+                    $os->{'4WM/DE'} = $wm_list{$wm};
                     last;
                 }
             }
             
             {   #look for $de[\-\_]session process, to determine DE.
+                my $desktop;
                 foreach my $de (keys %desktops) {
                     if(my @occurrances = grep(/$de[\-\_]session/i, @plist)) {
-                        $os->{desktop_env} = $de;
+                        $desktop = $de;
                         last;
                     }
                 }
-                $os->{desktop_env} = $desktops{$os->{desktop_env}} if ($os->{desktop_env});
+                if($os->{'4WM/DE'}) {
+                    $os->{'4WM/DE'} .= "/$desktops{$desktop}";
+                } else {
+                    $os->{'4WM/DE'} = $desktops{$desktop};
+                }
             }
             undef @plist;
         }
@@ -428,10 +447,8 @@ sub GetOSInfo {
 
 #==========================MEMORY INFORMATION
 my $memory = {
-    ram_used => undef,
-    ram_total => undef,
-    swap_used => undef,
-    swap_total => undef,
+    '1Ram' => undef,
+    '2Swap' => undef,
 };
 
 my $re_number = eval { qr/[\s]*([\d]+)/ };
@@ -439,64 +456,82 @@ my $re_number = eval { qr/[\s]*([\d]+)/ };
 sub GetMemInfo {
     my $buffer = ReadFile('/proc/meminfo');
     if($buffer) {
-        $memory->{ram_total} = FirstMatch($buffer, qr/MemTotal:$re_number/im);
+        my $ram_used; my $swap_used;
+        $memory->{'1Ram'} = FirstMatch($buffer, qr/MemTotal:$re_number/im);
         {
             my $buffers = FirstMatch($buffer, qr/Buffers:$re_number/im);
             my $cached = FirstMatch($buffer, qr/Cached:$re_number/im);
             my $memfree = FirstMatch($buffer, qr/MemFree:$re_number/im);
-            $memory->{ram_used} =int(($memory->{ram_total} - ($buffers + $cached + $memfree)) / 1024);
+            $ram_used = int(($memory->{'1Ram'} - ($buffers + $cached + $memfree)) / 1024);
         }
-        $memory->{ram_total} = int($memory->{ram_total} / 1024);
+        $memory->{'1Ram'} = int($memory->{'1Ram'} / 1024);
         
-        $memory->{swap_total} = FirstMatch($buffer, qr/SwapTotal:$re_number/m);
+        $memory->{'2Swap'} = FirstMatch($buffer, qr/SwapTotal:$re_number/m);
         {
             my $cached = FirstMatch($buffer, qr/SwapCached:$re_number/m);
             my $swapfree = FirstMatch($buffer, qr/SwapFree:$re_number/m);
-            $memory->{swap_used} = int( ($memory->{swap_total} - ($swapfree + $cached)) / 1024);
+            $swap_used = int( ($memory->{'2Swap'} - ($swapfree + $cached)) / 1024);
         }
-        $memory->{swap_total} = int($memory->{swap_total} / 1024);
+        $memory->{'2Swap'} = int($memory->{'2Swap'} / 1024);
         undef $buffer;
+        
+        if($memory->{'2Swap'}) {
+            $memory->{'2Swap'} .= "M";
+            $swap_used .= "M";
+            $memory->{'2Swap'} = "$swap_used/$memory->{'2Swap'}";
+        }
+        if($memory->{'1Ram'}) {
+            $memory->{'1Ram'} .= "M";
+            $ram_used .= "M";
+            $memory->{'1Ram'} = "$ram_used/$memory->{'1Ram'}";
+        }
     }
 }
 #==========================GPU INFORMATION (requires glxinfo atm)
 
 my $gpu = {
-    vendor => undef,
-    card => undef,
-    driver => undef,
+    '1Vendor' => undef,
+    '2Model' => undef,
+    '3Driver' => undef,
 };
 
-my @driver_patterns = ( #needs proper patterns...
-    qr/X($re_version-$re_version)/i,
-    qr/(mesa $re_version)/i,
-    qr/(nvidia $re_version)/i,
-    qr/$re_version/,
-);
+# my @driver_patterns = ( #needs proper patterns...
+#     qr/X($re_version-$re_version)/i,
+#     qr/(mesa $re_version)/i,
+#     qr/(nvidia $re_version)/i,
+#     qr/$re_version/,
+# );
 
 sub GetGPUInfo {
-    if(CommithForth('glxinfo')) {
-        my @glx_data = `glxinfo`;
-        
-        $gpu->{vendor} = (grep(/OpenGL vendor string/, @glx_data))[0];
-        $gpu->{vendor} = $1 if($gpu->{vendor} =~ qr/\:\ ([\w\.\ ]+)/);
-        
-        $gpu->{driver} = ((grep(/OpenGL core profile version string/, @glx_data))[0] or (grep(/OpenGL version string/, @glx_data))[0]);
-        if($gpu->{driver}) {
-            foreach my $regex(@driver_patterns) { #yes, I replaced a smartmatch with a foreach loop, forgive me.
-                if($gpu->{driver} =~ $regex) {
-                    $gpu->{driver} = $1;
-                    last; #in the words of shaggy, "lets get outta here!"
-                }
-            }
-        }
-        
-        $gpu->{card} = (grep(/OpenGL renderer string/, @glx_data))[0];
-        if($gpu->{card}) {
-            $gpu->{card} = $1 if($gpu->{card} =~ qr/:[\s]+([^\/\n]+)[\/]?/);
-        }
-        
-        undef @glx_data;
-    }
+    if(-e '/proc/driver/nvidia/gpus/0/information') {
+        my $contents = ReadFile '/proc/driver/nvidia/gpus/0/information';
+        $gpu->{'1Vendor'} = 'NVIDIA';
+        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/i);
+        $gpu->{'3Driver'} = $1 if ( (ReadFile '/proc/driver/nvidia/version') =~ /Module[\s]+$re_version[\s]/i);
+    } 
+#     elsif(CommithForth('glxinfo')) {
+#         my @glx_data = `glxinfo`;
+#         
+#         $gpu->{vendor} = (grep(/OpenGL vendor string/, @glx_data))[0];
+#         $gpu->{vendor} = $1 if($gpu->{vendor} =~ qr/\:\ ([\w\.\ ]+)/);
+#         
+#         $gpu->{driver} = ((grep(/OpenGL core profile version string/, @glx_data))[0] or (grep(/OpenGL version string/, @glx_data))[0]);
+#         if($gpu->{driver}) {
+#             foreach my $regex(@driver_patterns) { #yes, I replaced a smartmatch with a foreach loop, forgive me.
+#                 if($gpu->{driver} =~ $regex) {
+#                     $gpu->{driver} = $1;
+#                     last; #in the words of shaggy, "lets get outta here!"
+#                 }
+#             }
+#         }
+#         
+#         $gpu->{card} = (grep(/OpenGL renderer string/, @glx_data))[0];
+#         if($gpu->{card}) {
+#             $gpu->{card} = $1 if($gpu->{card} =~ qr/:[\s]+([^\/\n]+)[\/]?/);
+#         }
+#         
+#         undef @glx_data;
+#     }
 }
 
 #==========================
@@ -523,16 +558,25 @@ sub HasContents ($) {
     return $count;
 }
 
+my $re_nosortnum = qr/[\d]?([\w]+)/;
+
 sub PrintHashes {
     for my $vals (sort keys %LISTS) {
-        $vals =~ qr/[\d]?([\w]+)/; #get val without sort order number, assuming is has such a thing
+        $vals =~ /$re_nosortnum/;
         print "${title_color}$1-\n";
         PrintList($LISTS{$vals});
     }
 }
 
-# sub PrintHash {
-#     for my %item (
+sub PrintHashTable ($$) {
+    if(HasContents($_[0])) {
+        print "${title_color}${_[1]}\n";
+        for my $tkey (sort keys %{$_[0]}) {     #using numbers to sort a hash is a dirty hack, but its the only thing I 
+            $tkey =~ /$re_nosortnum/;            # could come up with to maintain order, without writing garbage.
+            PrintEntry($1, $_[0]{$tkey});
+        }
+    }
+}
 #==========================WRITE OUTPUT/MAIN
 Startup();
 PopulateLists() if($langs);
@@ -542,54 +586,12 @@ GetOSInfo();
 GetMoboInfo();
 GetGPUInfo();
 
+PrintHashTable($os, 'Operating System');
+PrintHashTable($motherboard, 'Motherboard');
+PrintHashTable($processor, 'Processor');
+PrintHashTable($memory, 'Memory');
+PrintHashTable($gpu, 'Video Card');
 
-if(HasContents($os)) {
-    print "${title_color}Operating System-\n";
-    PrintEntry('Distro', ($os->{distro} ? "$os->{distro} " : '') . ($os->{distro_version} ? "$os->{distro_version} " : ''));
-    PrintEntry('Kernel', $os->{kernel});
-    PrintEntry('User@Host', $os->{userhost});
-    
-    #I know there are better ways to go about this but this is just a quick fix for now.
-    if($os->{desktop_env} and not $os->{window_manager}) {
-        PrintEntry('DE', $os->{desktop_env});
-    } elsif($os->{window_manager} and not $os->{desktop_env}) {
-        PrintEntry('WM', $os->{window_manager});
-    } elsif($os->{window_manager} and $os->{desktop_env}) {
-        PrintEntry('WM/DE', $os->{window_manager} . '/' . $os->{desktop_env});
-    }
-    PrintEntry('Packages', $os->{package_count});
-}
-
-if(HasContents($motherboard)) {
-    print "${title_color}Motherboard-\n";
-    PrintEntry('Vendor', $motherboard->{vendor});
-    PrintEntry('Model', $motherboard->{board});
-    PrintEntry('Bios', $motherboard->{bios});
-}
-if(HasContents($processor)) {
-    print "${title_color}Processor-\n";
-    PrintEntry('Vendor', $processor->{vendor});
-    PrintEntry('Model', $processor->{name});
-    PrintEntry('Details', 
-               ($processor->{cores} ? "$processor->{cores}-Core" . ($processor->{cores} > 1 ? 's ' : ' ') : '')
-               . ($processor->{freq} ? "\@$processor->{freq}GHz " : '')
-               . ($processor->{ht} ? 'with hyperthreading' : '')
-    );
-}
-if(HasContents($gpu)){
-    print "${title_color}Video Card-\n";
-    PrintEntry('Vendor', $gpu->{vendor});
-    PrintEntry('Card', $gpu->{card});
-    PrintEntry('Driver', $gpu->{driver});
-}
-if(HasContents($memory)) {
-    print "${title_color}Memory-\n";
-    PrintEntry('Ram', ($memory->{ram_total} ? "$memory->{ram_used}M/$memory->{ram_total}M" : ''));
-    PrintEntry('Swap', ($memory->{swap_total} ? "$memory->{swap_used}M/$memory->{swap_total}M" : ''));
-}
-
-if($langs) {
-    PrintHashes();
-}
+PrintHashes() if($langs);
 
 Cleanup();
