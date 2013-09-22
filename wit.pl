@@ -23,7 +23,7 @@ eval {
 };
 
 
-my $wit_version = '0.42.3';
+my $wit_version = '0.42.4';
 
 my @bins = sort 
 '/usr/local/bin',
@@ -59,6 +59,7 @@ my $value_color = '';
 
 #==========================You have been warned, hazardous material ahead.
 sub CommithForth ($) { #pass (cmd)
+    return (-e "$_[0]") if($_[0] =~ /.*\/.*/);
     foreach my $bin (@bins) {
         return 1 if(-e "$bin/$_[0]");
     }
@@ -77,10 +78,12 @@ sub OpenFile ($) { #pass (file)
 sub ReadFile ($) { #pass (file)
     return do {
         local $/ = undef;
-        my $handle = OpenFile($_[0]);
-        my $contents = <$handle>;
-        close($handle);
-        return $contents;
+        if(my $handle = OpenFile($_[0])) {
+            my $contents = <$handle>;
+            close($handle);
+            return $contents;
+        }
+        return undef;
     };
 }
 
@@ -137,77 +140,83 @@ sub Cleanup {
 my $re_version = qr/((?:(?:[\d]){1,3}[\.]){1,3}(?:[\d]){1,3})/;
 
 my %LISTS = (
-    '3Tools' => [
-        { name => 'awk',         versioncmd => 'awk --version',        version => undef },
-        { name => 'grep',        versioncmd => 'grep --version',       version => undef },
-        { name => 'sed',         versioncmd => 'sed --version',        version => undef },
-    ],
+    # '3Tools' => [
+    #     { name => 'awk',         versioncmd => 'awk --version' },
+    #     { name => 'grep',        versioncmd => 'grep --version' },
+    #     { name => 'sed',         versioncmd => 'sed --version' },
+    # ],
     '0Shells' => [
-        { name => 'Bash',        versioncmd => 'bash --version',       version => undef },
-        { name => 'Fish',        versioncmd => 'fish --version',       version => undef },
-        { name => 'Mksh',        versioncmd => 'mksh',                 version => undef,
+        { name => 'Bash',        versioncmd => 'bash --version' },
+        { name => 'Fish',        versioncmd => 'fish --version' },
+        { name => 'Mksh',        versioncmd => 'mksh',
             altcmd => '' },
-        { name => 'Tcsh',        versioncmd => 'tcsh --version',       version => undef },
-        { name => 'Zsh',         versioncmd => 'zsh --version',        version => undef },
+        { name => 'Tcsh',        versioncmd => 'tcsh --version' },
+        { name => 'Zsh',         versioncmd => 'zsh --version' },
     ],
     '1Programming' => [
-        { name => 'Falcon',      versioncmd => 'falcon -v',            version => undef },
-        { name => 'HaXe',        versioncmd => 'haxe -version',        version => undef },
-        { name => 'Io',          versioncmd => 'io --version',         version => undef,
+        { name => 'Falcon',      versioncmd => 'falcon -v' },
+        { name => 'HaXe',        versioncmd => 'haxe -version' },
+        { name => 'Io',          versioncmd => 'io --version',
             edgecase => eval { qr/(?:v\.[\s])([\d]+)/ }},
-        { name => 'Lua',         versioncmd => 'lua -v',               version => undef },
-        { name => 'MoonScript',  versioncmd => 'moon -v',              version => undef },
-        { name => 'Neko',        versioncmd => 'neko',                 version => undef },
-        { name => 'newLisp',     versioncmd => 'newlisp -v',           version => undef },
-        { name => 'Perl5',       versioncmd => 'perl --version',       version => undef },
-        { name => 'Perl6',       versioncmd => 'perl6 -v',             version => undef },
-        { name => 'Python2',     versioncmd => 'python2 --version',    version => undef },
-        { name => 'Python3',     versioncmd => 'python3 --version',    version => undef },
-        { name => 'Racket',      versioncmd => 'racket --version',     version => undef },
-        { name => 'Ruby',        versioncmd => 'ruby --version',       version => undef },
-        { name => 'Squirrel',    versioncmd => 'squirrel -v',          version => undef },
-        { name => 'Tcl',         versioncmd => 'tclsh',                version => undef,
+        { name => 'Lua',         versioncmd => 'lua -v' },
+        { name => 'MoonScript',  versioncmd => 'moon -v' },
+        { name => 'Neko',        versioncmd => 'neko' },
+        { name => 'newLisp',     versioncmd => 'newlisp -v' },
+        { name => 'Perl5',       versioncmd => 'perl --version' },
+        { name => 'Perl6',       versioncmd => 'perl6 -v' },
+        { name => 'Python2',     versioncmd => 'python2 --version' },
+        { name => 'Python3',     versioncmd => 'python3 --version' },
+        { name => 'Racket',      versioncmd => 'racket --version' },
+        { name => 'Ruby',        versioncmd => 'ruby --version' },
+        { name => 'Squirrel',    versioncmd => 'squirrel -v' },
+        { name => 'Tcl',         versioncmd => 'tclsh',
             altcmd => "echo 'puts \$tcl_version;exit 0' | tclsh"},
                     #compilers
-        { name => 'GNAT Ada',    versioncmd => 'gnat',                 version => undef },
-        { name => 'Chicken',     versioncmd => 'chicken -version',     version => undef },
-        { name => 'GCC',         versioncmd => 'gcc --version',        version => undef },
-        { name => 'Guile',       versioncmd => 'guile -v',             version => undef },
-        { name => 'Rust',        versioncmd => 'rust --version',       version => undef },
-        { name => 'Vala',        versioncmd => 'valac --version',      version => undef },
-        { name => 'Ypsilon',     versioncmd => 'ypsilon --version',    version => undef },
+        { name => 'GNAT Ada',    versioncmd => 'gnat' },
+        { name => 'Chicken',     versioncmd => 'chicken -version' },
+        { name => 'GCC',         versioncmd => 'gcc --version' },
+        { name => 'Haskell',     versioncmd => 'ghc --version' },
+        { name => 'Guile',       versioncmd => 'guile -v' },
+        { name => 'Rust',        versioncmd => 'rust --version' },
+        { name => 'Vala',        versioncmd => 'valac --version' },
+        { name => 'Ypsilon',     versioncmd => 'ypsilon --version' },
     ],
     '2Editors' => [
-        { name => 'dex',         versioncmd => 'dex -V',               version => undef }, #simply displays 'no-version' last I checked.
-        { name => 'Diakonos',    versioncmd => 'diakonos --version',   version => undef },
-        { name => 'Emacs',       versioncmd => 'emacs --version',      version => undef },
-        { name => 'geany',       versioncmd => 'geany --version',      version => undef },
-        { name => 'gedit',       versioncmd => 'gedit --version',      version => undef },
-        { name => 'jed',         versioncmd => 'jed --version',        version => undef },
-        { name => 'Joe',         versioncmd => 'joe',                  version => undef,
+        { name => 'dex',         versioncmd => 'dex -V' }, #simply displays 'no-version' last I checked.
+        { name => 'Diakonos',    versioncmd => 'diakonos --version' },
+        { name => 'Emacs',       versioncmd => 'emacs --version' },
+        { name => 'geany',       versioncmd => 'geany --version' },
+        { name => 'gedit',       versioncmd => 'gedit --version' },
+        { name => 'jed',         versioncmd => 'jed --version' },
+        { name => 'Joe',         versioncmd => 'joe',
             altcmd => '' }, #no version option...
-        { name => 'Kate',        versioncmd => 'kate --version',       version => undef,
-            edgecase => eval { qr/(?:Kate:[\s])($re_version)/ }},
-        { name => 'Leafpad',     versioncmd => 'leafpad --version',    version => undef },
-        { name => 'medit',       versioncmd => 'medit --version',      version => undef },
-        { name => 'mousepad',    versioncmd => 'mousepad --version',   version => undef },
-        { name => 'nano',        versioncmd => 'nano --version',       version => undef },
-        { name => 'vi',          versioncmd => 'vi',                   version => undef,
+        { name => 'Kate',        versioncmd => 'kate --version',
+            edgecase => eval { qr/(?:Kate:[\s])$re_version/ }},
+        { name => 'Leafpad',     versioncmd => 'leafpad --version' },
+        { name => 'medit',       versioncmd => 'medit --version' },
+        { name => 'mousepad',    versioncmd => 'mousepad --version' },
+        { name => 'nano',        versioncmd => 'nano --version' },
+        { name => 'SublimeText 2', versioncmd => '/opt/sublime-text/sublime_text -v',
+         edgecase => eval { qr/(?:[\d]?[\s\w]+)([\d]{4})/i } },
+        { name => 'SublimeText 3', versioncmd => '/opt/sublime_text_3/sublime_text -v',
+         edgecase => eval { qr/(?:[\d]?[\s\w]+)([\d]{4})/i } },
+        { name => 'vi',          versioncmd => 'vi',
             altcmd => '' }, #can't get vi version info from cli switch, so just check if it exists.
-        { name => 'Vim',         versioncmd => 'vim --version',        version => undef },
+        { name => 'Vim',         versioncmd => 'vim --version' },
     ],
 );
 
 sub PopulateLists {
     foreach my $vals (keys %LISTS) {
         foreach my $elem ( @{$LISTS{$vals}}) {
-            if(($elem->{versioncmd} =~ qr/([\w]+)\ ?/) and CommithForth($1)) {
+            my $command = (split /\ /, $elem->{versioncmd})[0];
+            if(($command) and CommithForth($command)) {
                 $elem->{version} = ( #for the love of god, if you can't read this, blame my cat.
                 (
                     (defined $elem->{altcmd} ? (scalar `$elem->{altcmd} 2>&1`) : (scalar `$elem->{versioncmd} 2>&1`)) #use altcmds if available
                     =~
                     (defined $elem->{edgecase} ? $elem->{edgecase} : $re_version) #use edge cases if available
-                    and $1
+                    and ($2 ? "$1($2)" : $1)
                 )
                 or ('unknown') #this is an edge case in it self...
                 );
@@ -215,7 +224,7 @@ sub PopulateLists {
         }
     }
 }
-#==========================CPU INFORMATION
+#==========================CPU INFORMATION #WILL REWRITE THIS NEXT
 my $processor = {
     '1Vendor' => undef,
     '2Model' => undef,
@@ -355,43 +364,40 @@ my $os = {
 };
 
 sub GetOSInfo {
-    my $buffer = ReadFile('/proc/version');
-    if($buffer) {
-        $os->{'2Kernel'} = ($buffer =~ qr/^([\w]+) version /im ? "$1 " : ' ') . ($buffer =~ qr/version $re_version/im ? "$1" : '');
-        undef $buffer;
+    if(my $buffer = ReadFile('/proc/version')) {
+        $os->{'2Kernel'} = "$1 $2" if($buffer =~ qr/([\w]+)[\s]+version[\s]+$re_version/i);
     }
     
-    if(not ($os->{'3User@Host'} = $ENV{'USER'})) { #if USER env variable not present fallback to whoami
-        $os->{'3User@Host'} = FirstMatch(`whoami`, $re_anyword) if (CommithForth('whoami'));
-    }
-    if(-e '/proc/sys/kernel/hostname') { #much faster
-        chomp ($os->{'3User@Host'} .= "@" . ReadFile('/proc/sys/kernel/hostname'));
-    } elsif(CommithForth('hostname') and `hostname` =~ $re_anyword) { #fallback to hostname
-        $os->{'3User@Host'} .= ($1 ? "\@$1" : '');
-    }
-    
-    if(($buffer = (ReadFile('/etc/lsb-release') or ReadFile('/etc/os-release')) )) {
-        if($buffer) {
-            $os->{'1Distro'} = FirstMatch($buffer, qr/DISTRIB_ID=$re_anyword/m);
-            $os->{'1Distro'} .= ' ' . FirstMatch($buffer, qr/DISTRIB_RELEASE=$re_anyword/m) . ' ' . FirstMatch($buffer, qr/DISTRIB_CODENAME=$re_anyword/m);
-            undef $buffer;
+    if(not ($os->{'3User@Host'} = $ENV{'USER'})) {
+        if(CommithForth('whoami')) {
+            $os->{'3User@Host'} = $1 if(`whoami` =~ $re_anyword);
         }
-    } elsif((my $line =(grep(/([\w]+-release|[\w]+_version)$/, `ls -1 /etc/*-release 2>&1`))[0])) { #propose: /([\w]+-release|[\w]+_version)$/
-        if($line =~ $re_anyword) {
-            my $matching_file = $1;
-            if(-e -r $matching_file) {
-                $os->{'1Distro'} = ReadFile($matching_file);
-                $os->{'1Distro'} =~ s/[\n]*//;
+    }
+
+    if(my $buffer = ReadFile('/proc/sys/kernel/hostname')) { #much faster
+        $os->{'3User@Host'} .= "\@$1" if($buffer =~ $re_anyword);
+    } elsif(CommithForth('hostname')) {
+        $os->{'3User@Host'} .= "\@$1" if(`hostname` =~ $re_anyword);
+    }
+    
+    if(my $buffer = (ReadFile('/etc/lsb-release') or ReadFile('/etc/os-release'))) {
+        if ($buffer =~ qr/^DISTRIB_ID=(.+)/m) {
+            $os->{'1Distro'} = $1;
+            $os->{'1Distro'} .= " $1" if($buffer =~ qr/^DISTRIB_RELEASE=(.+)/m);
+            $os->{'1Distro'} .= " $1" if($buffer =~ qr/^DISTRIB_CODENAME=(.+)/m);
+        }
+    } elsif ($buffer = ReadFile('/etc/os-release')) {
+        $os->{'1Distro'} = "$1" if ($buffer =~ qr/NAME=\"$re_anyword\"/m);
+    } elsif ($buffer = ReadFile('/etc/debian_version')) {
+        $os->{'1Distro'} = "Debian $1" if ($buffer =~ qr/re_anyword/m);
+    } else { #weak detection
+        if(my @files = (`ls -1 /etc/*-release` or `ls -1 /etc/*_version`)) {
+            if (my $buffer = ReadFile($files[0])) {
+                $os->{'1Distro'} = $1 if ($buffer =~ qr/re_anyword/m);
             }
         }
-    } else {
-        if(-e '/etc/debian_version') {
-            $os->{'1Distro'} = 'Debian ' . (($buffer = ReadFile('/etc/debian_version')) ? $buffer : '');
-        }
     }
-    $os->{'1Distro'} =~ s/[\n]+// if($os->{'1Distro'});
-    
-    
+
     my @packages = 0;
     if(CommithForth('pacman')) { #Good ol' Arch (tested)
         @packages = (`pacman -Qq`);
@@ -409,28 +415,21 @@ sub GetOSInfo {
     $os->{'5Packages'} = scalar @packages;
     undef @packages;
     
-    {
-        if(CommithForth('ps')) {
-            my @plist = `ps axco command`;
-            foreach my $wm (keys %wm_list) {
-                if (grep(/$wm/, @plist)) {
-                    $os->{'4WM/DE'} = $wm_list{$wm};
-                    last;
-                }
+    if(CommithForth('ps') and my @plist = `ps axco command`) {
+        my $WM; my $DE;
+        foreach my $wm (keys %wm_list) {
+            if(grep(/$wm/, @plist)) {
+                $WM = $wm_list{$wm};
+                last;
             }
-            
-            {   #look for $de[\-\_]session process, to determine DE.
-                my $desktop;
-                foreach my $de (keys %desktops) {
-                    if(my @occurrances = grep(/$de[\-\_]session/i, @plist)) {
-                        $desktop = $de;
-                        last;
-                    }
-                }
-                $os->{'4WM/DE'} = ($os->{'4WM/DE'} ? "$os->{'4WM/DE'}\/" : '') . "$desktops{$desktop}";
-            }
-            undef @plist;
         }
+        foreach my $de (keys %desktops) {
+            if(grep(/$de[\-\_]session/, @plist)) {
+                $DE = $desktops{$de};
+                last;
+            }
+        }
+        $os->{'4WM/DE'} = (($WM and $DE) ? "$WM/$DE" : $WM or $DE);
     }
 }
 
@@ -441,39 +440,35 @@ my $memory = {
 };
 
 my $re_number = eval { qr/[\s]*([\d]+)/ };
+#my $size = eval { qr/[\s]+((?:[\d]+(?:[\.][\d]+)?))[\s]+(?:[KkBb]+)/ };
 
 sub GetMemInfo {
     my $buffer = ReadFile('/proc/meminfo');
     if($buffer) {
+        my $ram_total; my $swap_total;
         my $ram_used; my $swap_used;
-        $memory->{'1Ram'} = FirstMatch($buffer, qr/MemTotal:$re_number/im);
-        {
-            my $buffers = FirstMatch($buffer, qr/Buffers:$re_number/im);
-            my $cached = FirstMatch($buffer, qr/Cached:$re_number/im);
-            my $memfree = FirstMatch($buffer, qr/MemFree:$re_number/im);
-            $ram_used = int(($memory->{'1Ram'} - ($buffers + $cached + $memfree)) / 1024);
+
+        if($buffer =~ qr/MemTotal:$re_number/m) {
+            $ram_used = $ram_total = $1;
+            $ram_used -= $1 if($buffer =~ qr/^Buffers:$re_number/m);
+            $ram_used -= $1 if($buffer =~ qr/^Cached:$re_number/m);
+            $ram_used -= $1 if($buffer =~ qr/^MemFree:$re_number/m);
+            $ram_used = int($ram_used / 1024);
+            $ram_total = int($ram_total / 1024);
         }
-        $memory->{'1Ram'} = int($memory->{'1Ram'} / 1024);
-        
-        $memory->{'2Swap'} = FirstMatch($buffer, qr/SwapTotal:$re_number/m);
-        {
-            my $cached = FirstMatch($buffer, qr/SwapCached:$re_number/m);
-            my $swapfree = FirstMatch($buffer, qr/SwapFree:$re_number/m);
-            $swap_used = int( ($memory->{'2Swap'} - ($swapfree + $cached)) / 1024);
+
+        if($buffer =~ qr/SwapTotal:$re_number/m) {
+            $swap_used = $swap_total = $1;
+            $swap_used -= $1 if($buffer =~ qr/^SwapCached:$re_number/m);
+            $swap_used -= $1 if($buffer =~ qr/^SwapFree:$re_number/m);
+            $swap_total = int($swap_total / 1024);
+            $swap_used = int($swap_used / 1024);
         }
-        $memory->{'2Swap'} = int($memory->{'2Swap'} / 1024);
+
         undef $buffer;
         
-        if($memory->{'2Swap'}) {
-            $memory->{'2Swap'} .= "M";
-            $swap_used .= "M";
-            $memory->{'2Swap'} = "$swap_used/$memory->{'2Swap'}";
-        }
-        if($memory->{'1Ram'}) {
-            $memory->{'1Ram'} .= "M";
-            $ram_used .= "M";
-            $memory->{'1Ram'} = "$ram_used/$memory->{'1Ram'}";
-        }
+        $memory->{'1Ram'} = "${ram_used}M/${ram_total}M" if($ram_total);
+        $memory->{'2Swap'} = "${swap_used}M/${swap_total}M" if($swap_total);
     }
 }
 #==========================GPU INFORMATION (requires glxinfo atm)
@@ -485,7 +480,7 @@ my $gpu = {
 };
 
 sub GetGPUInfo {
-    if(-e '/proc/driver/nvidia/gpus/0/information') {
+    if(-e '/proc/driver/nvidia/gpus/0/information') { #NVIDIA with prop driver
         my $contents = ReadFile '/proc/driver/nvidia/gpus/0/information';
         $gpu->{'1Vendor'} = 'NVIDIA';
         $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/i);
@@ -517,7 +512,7 @@ sub HasContents ($) {
     return $count;
 }
 
-my $re_nosortnum = qr/[\d]?([\w]+)/;
+my $re_nosortnum = qr/[\d]?(.+)/;
 
 sub PrintHashes {
     for my $vals (sort keys %LISTS) {
