@@ -85,10 +85,6 @@ sub ReadFile ($) { #pass (file)
     };
 }
 
-sub FirstMatch ($$) { #pass (target string, pattern with grouping)
-    return ($_[0] =~ $_[1] ? $1 : undef);
-}
-
 sub Startup { #init code here
     foreach my $arg (@ARGV) {
         if($arg =~ /(-v|--version)/){
@@ -135,7 +131,7 @@ sub Cleanup {
 }
 #==========================PROGRAM LISTS
 #my $re_version = eval { qr/((?:(?:[\d]+)\.)+[\d]+)/im };
-my $re_version = qr/((?:(?:[\d]){1,3}[\.]){1,3}(?:[\d]){1,3})/;
+my $re_version = eval { qr/((?:(?:[\d]){1,3}[\.]){1,3}(?:[\d]){1,3})/ };
 
 my %LISTS = (
     # '3Tools' => [
@@ -498,7 +494,7 @@ sub HasContents ($) {
     return $count;
 }
 
-my $re_nosortnum = qr/[\d]?(.+)/;
+my $re_nosortnum = eval { qr/[\d]?(.+)/ };
 
 sub PrintHashes {
     for my $vals (sort keys %LISTS) {
