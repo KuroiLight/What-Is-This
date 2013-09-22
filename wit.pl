@@ -59,7 +59,6 @@ my $value_color = '';
 
 #==========================You have been warned, hazardous material ahead.
 sub CommithForth ($) { #pass (cmd)
-    return (-e "$_[0]") if($_[0] =~ /.*\/.*/);
     foreach my $bin (@bins) {
         return 1 if(-e "$bin/$_[0]");
     }
@@ -77,13 +76,12 @@ sub OpenFile ($) { #pass (file)
 
 sub ReadFile ($) { #pass (file)
     return do {
-        local $/ = undef;
+        local $/ = undef; my $contents = undef;
         if(my $handle = OpenFile($_[0])) {
-            my $contents = <$handle>;
+            $contents = <$handle>;
             close($handle);
-            return $contents;
         }
-        return undef;
+        return $contents;
     };
 }
 
@@ -196,10 +194,10 @@ my %LISTS = (
         { name => 'medit',       versioncmd => 'medit --version' },
         { name => 'mousepad',    versioncmd => 'mousepad --version' },
         { name => 'nano',        versioncmd => 'nano --version' },
-        { name => 'SublimeText 2', versioncmd => '/opt/sublime-text/sublime_text -v',
-         edgecase => eval { qr/(?:[\d]?[\s\w]+)([\d]{4})/i } },
-        { name => 'SublimeText 3', versioncmd => '/opt/sublime_text_3/sublime_text -v',
-         edgecase => eval { qr/(?:[\d]?[\s\w]+)([\d]{4})/i } },
+        { name => 'SublimeText 2', versioncmd => 'subl -v',
+            edgecase => eval { qr/(?:[\d]?[\s\w]+)([\d]{4})/i } },
+        { name => 'SublimeText 3', versioncmd => 'subl3 -v',
+            edgecase => eval { qr/(?:[\d]?[\s\w]+)([\d]{4})/i } },
         { name => 'vi',          versioncmd => 'vi',
             altcmd => '' }, #can't get vi version info from cli switch, so just check if it exists.
         { name => 'Vim',         versioncmd => 'vim --version' },
@@ -209,67 +207,55 @@ my %LISTS = (
 sub PopulateLists {
     foreach my $vals (keys %LISTS) {
         foreach my $elem ( @{$LISTS{$vals}}) {
-            my $command = (split /\ /, $elem->{versioncmd})[0];
-            if(($command) and CommithForth($command)) {
-                $elem->{version} = ( #for the love of god, if you can't read this, blame my cat.
-                (
-                    (defined $elem->{altcmd} ? (scalar `$elem->{altcmd} 2>&1`) : (scalar `$elem->{versioncmd} 2>&1`)) #use altcmds if available
-                    =~
-                    (defined $elem->{edgecase} ? $elem->{edgecase} : $re_version) #use edge cases if available
-                    and ($2 ? "$1($2)" : $1)
-                )
-                or ('unknown') #this is an edge case in it self...
-                );
+            if(CommithForth((split /\ /, $elem->{versioncmd})[0])) {
+                if(($elem->{altcmd} ? `$elem->{altcmd} 2>&1` : `$elem->{versioncmd} 2>&1`) =~ ($elem->{edgecase} ? $elem->{edgecase} : $re_version)) {
+                    $elem->{version} = ($2 ? "$1($2)" : $1);
+                } else {
+                    $elem->{version} = 'unknown';
+                }
             }
         }
     }
 }
-#==========================CPU INFORMATION #WILL REWRITE THIS NEXT
+#==========================CPU INFORMATION
 my $processor = {
     '1Vendor' => undef,
     '2Model' => undef,
     '3Details' => undef,
 };
 
-my $re_cpu = eval { qr/[\t\:\ ]+(.+)[\W]+/ };
+my $re_cpu = eval { qr/[\s\:]+(.+)/ };
 my $re_intelghz = eval { qr/\ \@.+/ };
 
-sub GetCPUInfo {
-    my $buffer = ReadFile('/proc/cpuinfo');
-    if($buffer) {
-        $processor->{'1Vendor'} = FirstMatch($buffer, qr/vendor_id$re_cpu/m);
-        $processor->{'2Model'} = FirstMatch($buffer, qr/model name$re_cpu(?:$re_intelghz)?/m);
-        #$processor->{'2Model'} =~ s/$re_intelghz//;
+sub GetCPUInfo { #still a mess...
+    if(my $buffer = ReadFile('/proc/cpuinfo')) {
+        $processor->{'1Vendor'} = $1 if($buffer =~ qr/vendor_id$re_cpu/m);
+        $processor->{'2Model'} = $1 if ($buffer =~ qr/model name$re_cpu/m);
+        $processor->{'2Model'} =~ s/(?:$re_intelghz)//;
         
-        my $cores;
-        if($buffer =~ qr/cpu cores$re_cpu/m) {
-            $processor->{'3Details'} = $1;
-        } elsif (not ($processor->{'3Details'} =()= ($buffer =~ /processor$re_cpu/g))) { #if /cpu cores/ is not present fallback to somewhat less accurate processor counting.
-            $processor->{'3Details'} = 1;
+        my $freq = ''; my $hypsterthreads = '';
+        my $cores = ( ($buffer =~ qr/cpu cores$re_cpu/m) and $1 or ()= ($buffer =~ /processor$re_cpu/g) );
+        if($cores) {
+            if($buffer =~ qr/siblings$re_cpu/m){
+                my $threads = $1;
+                $hypsterthreads = (($threads / $cores) == 2 ? 'with HyperThreading' : '');
+            }
+            $cores = "$cores-Core" . ($cores > 1 ? 's' : '');
         }
-        $cores = $processor->{'3Details'};
-        if($processor->{'3Details'} > 1) {
-            $processor->{'3Details'} .= "-Cores ";
-        } elsif($processor->{'3Details'} == 1) {
-            $processor->{'3Details'} .= "-Core ";
+
+        if(my $limitbreak = ReadFile('/sys/bus/cpu/devices/cpu0/cpufreq/bios_limit')) {
+            $freq = $limitbreak / 1000000;
+        } elsif ($buffer =~ qr/cpu MHz$re_cpu/m) {
+            $freq = $1 / 1000;
         }
-        
-        my $freq;
-        if(-e '/sys/bus/cpu/devices/cpu0/cpufreq/bios_limit') { #more accurate
-            $freq = sprintf('%0.2f', (ReadFile('/sys/bus/cpu/devices/cpu0/cpufreq/bios_limit') / 1000000))
-        } else {
-            $freq = ($1 / 1000) if($buffer =~ qr/cpu MHz$re_cpu/m);#FirstMatch($buffer, qr/cpu MHz$re_cpu/m) / 1000;
+
+        if($freq) {
             $freq = sprintf('%0.2f', $freq);
+            $freq = ($cores ? '@' : '') . "${freq}GHz";
         }
-        $processor->{'3Details'} .= ($processor->{'3Details'} ? '@' : '') . $freq . 'GHz ' if($freq);
+
+        $processor->{'3Details'} = "$cores $freq $hypsterthreads";
         
-        if($buffer =~ qr/siblings$re_cpu/m){
-            my $sibs = $1;
-            $processor->{'3Details'} .= (
-                (int($sibs / $cores) - 1) ? 'HyperThreaded' : ''
-            );
-        }
-        undef $buffer;
     }
 }
 #==========================MOTHERBOARD
@@ -392,7 +378,7 @@ sub GetOSInfo {
         $os->{'1Distro'} = "Debian $1" if ($buffer =~ qr/re_anyword/m);
     } else { #weak detection
         if(my @files = (`ls -1 /etc/*-release` or `ls -1 /etc/*_version`)) {
-            if (my $buffer = ReadFile($files[0])) {
+            if (my $buffer = ReadFile(chomp $files[0])) {
                 $os->{'1Distro'} = $1 if ($buffer =~ qr/re_anyword/m);
             }
         }
@@ -471,7 +457,7 @@ sub GetMemInfo {
         $memory->{'2Swap'} = "${swap_used}M/${swap_total}M" if($swap_total);
     }
 }
-#==========================GPU INFORMATION (requires glxinfo atm)
+#==========================GPU INFORMATION (INCOMPLETE)
 
 my $gpu = {
     '1Vendor' => undef,
