@@ -23,33 +23,28 @@ eval {
 };
 
 
-my $wit_version = '0.42.4';
+my $wit_version = '0.42.3';
 
-my @bins = sort 
-'/usr/local/bin',
+my @bins = (
 '/usr/bin/',
-'/bin',
-'/usr/local/sbin',
 '/usr/sbin',
+'/bin',
 '/sbin',
-;
+'/usr/local/bin',
+'/usr/local/sbin',
+);
 
 #untaint path
 $ENV{'PATH'} = undef;
-{
-    my $index = 0;
-    while ($index <= $#bins) {
-        my $b = $bins[$index];
-        if (-e -d $b) {
-            $ENV{'PATH'} .= (($index ? ':' : '') . "$b");
-            $index++;
-        } else {
-            splice @bins, $index, 1;
-        }
+for my $ind (0..((scalar @bins) - 1)) {
+    if(-e -d $bins[$ind]) {
+        $ENV{'PATH'} .= ':' if($ind);
+        $ENV{'PATH'} .= $bins[$ind];
+    } else {
+        splice @bins, $ind, 1;
     }
 }
 
-#print "You should upgrade perl, as you'll probably have problems running this script on anything under version 5.12\n\n" if ($] < 5.012);
 
 my $langs = 0;
 my $colors = 1;
@@ -81,7 +76,7 @@ sub ReadFile ($) { #pass (file)
             $contents = <$handle>;
             close($handle);
         }
-        return $contents;
+        $contents;
     };
 }
 
@@ -101,10 +96,13 @@ sub Startup { #init code here
             exit 0;
         } elsif($arg =~ /(-l|--langs)/){
             $langs = 1;
+            next;
         } elsif($arg =~ /(-nc|--nocolors)/){
             $colors = 0;
+            next;
         } elsif($arg =~ /-ac|--altcolors/){
             $colors = 2;
+            next;
         } else {
             print "Invalid option $arg\n";
             exit 1;
@@ -130,7 +128,6 @@ sub Cleanup {
     }
 }
 #==========================PROGRAM LISTS
-#my $re_version = eval { qr/((?:(?:[\d]+)\.)+[\d]+)/im };
 my $re_version = eval { qr/((?:(?:[\d]){1,3}[\.]){1,3}(?:[\d]){1,3})/ };
 
 my %LISTS = (
@@ -169,7 +166,7 @@ my %LISTS = (
         { name => 'GNAT Ada',    versioncmd => 'gnat' },
         { name => 'Chicken',     versioncmd => 'chicken -version' },
         { name => 'GCC',         versioncmd => 'gcc --version' },
-        { name => 'Haskell',     versioncmd => 'ghc --version' },
+        { name => 'Haskell',     versioncmd => 'ghc -V' },
         { name => 'Guile',       versioncmd => 'guile -v' },
         { name => 'Rust',        versioncmd => 'rust --version' },
         { name => 'Vala',        versioncmd => 'valac --version' },
@@ -205,7 +202,7 @@ sub PopulateLists {
         foreach my $elem ( @{$LISTS{$vals}}) {
             if(CommithForth((split /\ /, $elem->{versioncmd})[0])) {
                 if(($elem->{altcmd} ? `$elem->{altcmd} 2>&1` : `$elem->{versioncmd} 2>&1`) =~ ($elem->{edgecase} ? $elem->{edgecase} : $re_version)) {
-                    $elem->{version} = ($2 ? "$1($2)" : $1);
+                    $elem->{version} = $1;
                 } else {
                     $elem->{version} = 'unknown';
                 }
@@ -219,6 +216,25 @@ my $processor = {
     '2Model' => undef,
     '3Details' => undef,
 };
+
+my @coremap = (
+    'Single',
+    'Dual',
+    'Triple',
+    'Quad',
+    'Penta',
+    'Hexa',
+    'Hepta',
+    'Octo',
+    'Nona',
+    'Deca',
+    'Hendeca',
+    'Dodeca',
+    'Trideca',
+    'Tetradeca',
+    'Pentadeca',
+    'Hexadeca',
+);
 
 my $re_cpu = eval { qr/[\s\:]+(.+)/ };
 my $re_intelghz = eval { qr/\ \@.+/ };
@@ -234,9 +250,13 @@ sub GetCPUInfo { #still a mess...
         if($cores) {
             if($buffer =~ qr/siblings$re_cpu/m){
                 my $threads = $1;
-                $hypsterthreads = (($threads / $cores) == 2 ? 'with HyperThreading' : '');
+                $hypsterthreads = (($1 / $cores) == 2 ? 'with HyperThreading' : '');
             }
-            $cores = "$cores-Core" . ($cores > 1 ? 's' : '');
+            if($coremap[$cores-1]) {
+                $cores = "$coremap[$cores-1]-Core";
+            } else {
+                $cores = "$cores-Core";
+            }
         }
 
         if(my $limitbreak = ReadFile('/sys/bus/cpu/devices/cpu0/cpufreq/bios_limit')) {
@@ -372,11 +392,10 @@ sub GetOSInfo {
         $os->{'1Distro'} = "$1" if ($buffer =~ qr/NAME=\"$re_anyword\"/m);
     } elsif ($buffer = ReadFile('/etc/debian_version')) {
         $os->{'1Distro'} = "Debian $1" if ($buffer =~ qr/re_anyword/m);
-    } else { #weak detection
-        if(my @files = (`ls -1 /etc/*-release` or `ls -1 /etc/*_version`)) {
-            if (my $buffer = ReadFile(chomp $files[0])) {
-                $os->{'1Distro'} = $1 if ($buffer =~ qr/re_anyword/m);
-            }
+    } elsif(my $osfile = (grep /[\w]+[\-\_](?:version|release)/, `ls -1 /etc/* 2>/dev/null`)[0]) { # works just about everywhere else
+        $osfile =~ s/[\n]//;
+        if (my $buffer = ReadFile($osfile)) {
+            $os->{'1Distro'} = $1 if ($buffer =~ qr/(.+)/m);
         }
     }
 
@@ -397,7 +416,7 @@ sub GetOSInfo {
     $os->{'5Packages'} = scalar @packages;
     undef @packages;
     
-    if(CommithForth('ps') and my @plist = `ps axco command`) {
+    if(my @plist = `ps axco command`) {
         my $WM; my $DE;
         foreach my $wm (keys %wm_list) {
             if(grep(/$wm/, @plist)) {
@@ -422,11 +441,9 @@ my $memory = {
 };
 
 my $re_number = eval { qr/[\s]*([\d]+)/ };
-#my $size = eval { qr/[\s]+((?:[\d]+(?:[\.][\d]+)?))[\s]+(?:[KkBb]+)/ };
 
 sub GetMemInfo {
-    my $buffer = ReadFile('/proc/meminfo');
-    if($buffer) {
+    if(my $buffer = ReadFile('/proc/meminfo')) {
         my $ram_total; my $swap_total;
         my $ram_used; my $swap_used;
 
@@ -437,6 +454,7 @@ sub GetMemInfo {
             $ram_used -= $1 if($buffer =~ qr/^MemFree:$re_number/m);
             $ram_used = int($ram_used / 1024);
             $ram_total = int($ram_total / 1024);
+            $memory->{'1Ram'} = "${ram_used}M/${ram_total}M";
         }
 
         if($buffer =~ qr/SwapTotal:$re_number/m) {
@@ -445,12 +463,8 @@ sub GetMemInfo {
             $swap_used -= $1 if($buffer =~ qr/^SwapFree:$re_number/m);
             $swap_total = int($swap_total / 1024);
             $swap_used = int($swap_used / 1024);
+            $memory->{'2Swap'} = "${swap_used}M/${swap_total}M";
         }
-
-        undef $buffer;
-        
-        $memory->{'1Ram'} = "${ram_used}M/${ram_total}M" if($ram_total);
-        $memory->{'2Swap'} = "${swap_used}M/${swap_total}M" if($swap_total);
     }
 }
 #==========================GPU INFORMATION (INCOMPLETE)
@@ -462,18 +476,18 @@ my $gpu = {
 };
 
 sub GetGPUInfo {
-    if(-e '/proc/driver/nvidia/gpus/0/information') { #NVIDIA with prop driver
-        my $contents = ReadFile '/proc/driver/nvidia/gpus/0/information';
+    if(my $contents = ReadFile('/proc/driver/nvidia/gpus/0/information')) { #NVIDIA with prop driver
         $gpu->{'1Vendor'} = 'NVIDIA';
-        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/i);
-        $gpu->{'3Driver'} = $1 if ( (ReadFile '/proc/driver/nvidia/version') =~ /Module[\s]+$re_version[\s]/i);
+        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
+        $gpu->{'3Driver'} = $1 if ( (ReadFile '/proc/driver/nvidia/version') =~ /Module[\s]+$re_version[\s]/);
     } 
 }
 
-#==========================
+#==========================((length($_[0]) >= 16) ? '' : ((length($_[0]) >= 8) ? '' : "\t"))
 sub PrintEntry ($$) {
     if($_[1]) {
-        print "\t${subtitle_color}${_[0]}\t" . ((length($_[0]) >= 16) ? '' : ((length($_[0]) >= 8) ? '' : "\t")) . "${value_color}${_[1]}\n";
+        my $ws = "\t" x int((16 - length($_[0])) / 9);
+        print "\t${subtitle_color}${_[0]}\t${ws}${value_color}${_[1]}\n";
     }
 }
 
@@ -481,7 +495,7 @@ sub PrintList ($) {
     my $list = $_[0]; my $count = 0;
     foreach my $elem (@{$list}) {
         if($elem->{version}) {
-            PrintEntry($elem->{name}, (not ($elem->{version} eq 'unknown') ? 'v' : '') . $elem->{version});
+            PrintEntry($elem->{name}, $elem->{version});
         }
     }
 }
