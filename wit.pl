@@ -59,24 +59,13 @@ sub CommithForth ($) { #pass (cmd)
     return 0;
 }
 
-sub OpenFile ($) { #pass (file)
-    my $filename = $_[0]; my $filehandle;
-    if(-e -r $filename) {
-        open($filehandle, '<', $filename) or return undef;
-        return $filehandle;
-    }
-    return undef;
-}
-
 sub ReadFile ($) { #pass (file)
-    return do {
-        local $/ = undef; my $contents = undef;
-        if(my $handle = OpenFile($_[0])) {
-            $contents = <$handle>;
-            close($handle);
-        }
-        $contents;
-    };
+    my $filename = $_[0]; my $contents = undef; my $fh = undef; local $/ = undef;
+    if(-e -r $filename and open($fh, '<', $filename)) {
+        $contents = <$fh>;
+        close($fh);
+    }
+    return $contents;
 }
 
 my $version_string = "What-Is-This (wit) version $wit_version.\n";
@@ -238,7 +227,7 @@ my @coremap = (
     'Trideca',
     'Tetradeca',
     'Pentadeca',
-    'Hexadeca',
+    'Hexadeca', #16
 );
 
 my $re_cpu = eval { qr/[\s\:]+(.+)/ };
@@ -397,7 +386,7 @@ sub GetOSInfo {
         $os->{'1Distro'} = "$1" if ($buffer =~ qr/NAME=\"$re_anyword\"/m);
     } elsif ($buffer = ReadFile('/etc/debian_version')) {
         $os->{'1Distro'} = "Debian $1" if ($buffer =~ qr/re_anyword/m);
-    } elsif(my $osfile = (grep /[\w]+[\-\_](?:version|release)/, `ls -1 /etc/* 2>/dev/null`)[0]) { # works just about everywhere else
+    } elsif(my $osfile = (grep /[\w]+(?:-|_)(?:version|release)/, `ls -1 /etc/* 2>/dev/null`)[0]) { # works just about everywhere else
         $osfile =~ s/[\n]//;
         if (my $buffer = ReadFile($osfile)) {
             $os->{'1Distro'} = $1 if ($buffer =~ qr/(.+)/m);
