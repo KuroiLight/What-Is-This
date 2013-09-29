@@ -22,11 +22,10 @@ eval {
     utf8->import();
 };
 
-
 my $wit_version = '0.42.3';
 
 my @bins = (
-'/usr/bin/',
+'/usr/bin',
 '/usr/sbin',
 '/bin',
 '/sbin',
@@ -55,7 +54,7 @@ my $value_color = '';
 #==========================You have been warned, hazardous material ahead.
 sub CommithForth ($) { #pass (cmd)
     foreach my $bin (@bins) {
-        return 1 if(-e "$bin/$_[0]");
+        return 1 if(-e -r "$bin/$_[0]");
     }
     return 0;
 }
@@ -80,19 +79,24 @@ sub ReadFile ($) { #pass (file)
     };
 }
 
+my $version_string = "What-Is-This (wit) version $wit_version.\n";
+my @help_string = (
+    'Help:  wit <options>',
+    "\t-v,--version\t\tdisplay version and exit",
+    "\t-h,--help\t\tdisplay this help and exit",
+    "\t-l,--langs\t\tdisplay programming languages/editors",
+    "\t-ac,--altcolors\t\tuses alternate color scheme",
+    "\t-nc,--nocolors \t\tturns off colors completely"
+);
+
 sub Startup { #init code here
     foreach my $arg (@ARGV) {
         if($arg =~ /(-v|--version)/){
-            print "What-Is-This (wit) version $wit_version.\n";
+            print $version_string;
             exit 0;
         } elsif($arg =~ /(-h|--help)/){
-            print "What-Is-This (wit) version $wit_version.\n";
-            print "Help:\n  wit <options>";
-            print "\n\t-v,--version\t\tdisplay version and exit";
-            print "\n\t-h,--help\t\tdisplay this help and exit";
-            print "\n\t-l,--langs\t\tdisplay programming languages/editors";
-            print "\n\t-ac,--altcolors\t\tuses alternate color scheme";
-            print "\n\t-nc,--nocolors \t\tturns off colors completely\n";
+            $" = "\n";
+            print "$version_string@help_string\n";
             exit 0;
         } elsif($arg =~ /(-l|--langs)/){
             $langs = 1;
@@ -104,11 +108,12 @@ sub Startup { #init code here
             $colors = 2;
             next;
         } else {
-            print "Invalid option $arg\n";
+            $" = "\n";
+            print "Invalid option <$arg>\n@help_string\n";
             exit 1;
         }
     }
-    $colors = 0 if(`tput colors 2>&1` < 8);
+    $colors = 0 if(system('tput colors > /dev/null 2>&1'));
     if($colors) {
         if($colors == 1) {
             $title_color = "\033[1;33m";
@@ -197,7 +202,7 @@ my %LISTS = (
     ],
 );
 
-sub PopulateLists {
+sub PopulateLists { #REPLACE WITH ASYNC IPC MAYBE?
     foreach my $vals (keys %LISTS) {
         foreach my $elem ( @{$LISTS{$vals}}) {
             if(CommithForth((split /\ /, $elem->{versioncmd})[0])) {
@@ -475,12 +480,44 @@ my $gpu = {
     '3Driver' => undef,
 };
 
-sub GetGPUInfo {
-    if(my $contents = ReadFile('/proc/driver/nvidia/gpus/0/information')) { #NVIDIA with prop driver
-        $gpu->{'1Vendor'} = 'NVIDIA';
-        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
-        $gpu->{'3Driver'} = $1 if ( (ReadFile '/proc/driver/nvidia/version') =~ /Module[\s]+$re_version[\s]/);
-    } 
+my %re_vid = (
+    amd => eval { qr/(fglrx|r(?:adeon(?:si)?|[\d]{3}(?:g)?))/i },
+    nvidia => eval { qr/(nvidia|nouveau)/i },
+    intel => eval { qr/(intel)/i },
+    vbox => eval { qr/(vboxvideo)/i },
+);
+
+sub GetGPUInfo { #WILL NEED MORE DRIVER INFORMATION TO FINISH
+    if(my $buffer = ReadFile('/proc/modules')) {
+        if($buffer =~ /^(drm.+live.+)$/im) {
+            my $drm = $1;
+            if($drm =~ /$re_vid{nvidia}/) { #NVIDIA
+                $gpu->{'1Vendor'} = 'NVIDIA';
+                if($1 eq 'nouveau') {
+                    $gpu->{'3Driver'} = 'OpenSource (nouveau)';
+                } elsif($1 eq 'nvidia') {
+                    $gpu->{'3Driver'} = 'Proprietary';
+                    if(my $contents = ReadFile('/proc/driver/nvidia/gpus/0/information')) { #delve further
+                        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
+                        my $dvers = $1 if ( (ReadFile '/proc/driver/nvidia/version') =~ /Module[\s]+$re_version[\s]/);
+                        $gpu->{'3Driver'} .= " ($dvers)";
+                    }
+                }
+            } elsif($drm =~ /$re_vid{amd}/) { #AMD/ATI
+                $gpu->{'1Vendor'} = 'AMD';
+                if($1 =~ /(r(?:adeon|[\d]{3}(?:g)?))/) {
+                    $gpu->{'3Driver'} = 'OpenSource ($1)';
+                } elsif($1 eq 'fglrx') {
+                    $gpu->{'3Driver'} = 'Proprietary'; #add search for amd data
+                }
+            } elsif($drm =~ /$re_vid{intel}/) { #Intel
+                $gpu->{'1Vendor'} = 'Intel';
+            } elsif($drm =~ /$re_vid{vbox}/) { #vbox
+                $gpu->{'1Vendor'} = 'VirtualBox';
+                $gpu->{'3Driver'} = 'vboxvideo';
+            }
+        }
+    }
 }
 
 #==========================((length($_[0]) >= 16) ? '' : ((length($_[0]) >= 8) ? '' : "\t"))
