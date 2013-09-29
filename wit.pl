@@ -22,7 +22,7 @@ eval {
     utf8->import();
 };
 
-my $wit_version = '0.42.3';
+my $wit_version = '0.43.0';
 
 my @bins = (
 '/usr/bin',
