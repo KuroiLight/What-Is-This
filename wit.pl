@@ -511,10 +511,10 @@ sub PrintList ($$) {
     my $list = $_[0]; my $printedtitle;
     foreach my $elem (@{$list}) {
         if($elem->{version}) {
-            do {
+            if(not ($printedtitle) and $elem) { #once and only if a value is found
                 print "${title_color}${_[1]}\n";
                 $printedtitle = 1;
-            } if(not ($printedtitle) and $elem); #removes cost of HasContents() loop
+            }
             PrintEntry($elem->{name}, $elem->{version});
         }
     }
@@ -532,10 +532,10 @@ sub PrintHashes {
 sub PrintHashTable ($$) {
     my $printedtitle;
     for my $tkey (sort keys %{$_[0]}) {
-        do {
+        if(not ($printedtitle) and $_[0]{$tkey}) { #once and only if a value is found
             print "${title_color}${_[1]}\n";
             $printedtitle = 1;
-        } if(not ($printedtitle) and $_[0]{$tkey}); #removes cost of HasContents() loop
+        }
         $tkey =~ /$re_nosortnum/;
         PrintEntry($1, $_[0]{$tkey});
     }
