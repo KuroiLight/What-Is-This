@@ -492,10 +492,10 @@ sub GetGPUInfo { #WILL NEED MORE DRIVER INFORMATION TO FINISH
         if($buffer =~ /^(drm.+live.+)$/im) {
             my $drm = $1;
             if($drm =~ /$re_vid{nvidia}/) { #NVIDIA
-                $gpu->{'1Vendor'} = 'NVIDIA';
-                if($1 eq 'nouveau') {
+                $gpu->{'1Vendor'} = 'NVIDIA'; $drm = $1;
+                if($drm eq 'nouveau') {
                     $gpu->{'3Driver'} = 'OpenSource (nouveau)';
-                } elsif($1 eq 'nvidia') {
+                } elsif($drm eq 'nvidia') {
                     $gpu->{'3Driver'} = 'Proprietary';
                     if(my $contents = ReadFile('/proc/driver/nvidia/gpus/0/information')) { #delve further
                         $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
@@ -504,10 +504,10 @@ sub GetGPUInfo { #WILL NEED MORE DRIVER INFORMATION TO FINISH
                     }
                 }
             } elsif($drm =~ /$re_vid{amd}/) { #AMD/ATI
-                $gpu->{'1Vendor'} = 'AMD';
-                if($1 =~ /(r(?:adeon|[\d]{3}(?:g)?))/) {
+                $gpu->{'1Vendor'} = 'AMD'; $drm = $1;
+                if($drm =~ /(r(?:adeon|[\d]{3}(?:g)?))/) {
                     $gpu->{'3Driver'} = 'OpenSource ($1)';
-                } elsif($1 eq 'fglrx') {
+                } elsif($drm eq 'fglrx') {
                     $gpu->{'3Driver'} = 'Proprietary'; #add search for amd data
                 }
             } elsif($drm =~ /$re_vid{intel}/) { #Intel
