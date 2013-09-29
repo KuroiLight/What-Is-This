@@ -276,25 +276,17 @@ my $motherboard = {
 my $re_anyword = eval { qr/(.+)/ };
 
 sub GetMoboInfo {
-    my $buffer = ReadFile('/sys/class/dmi/id/board_vendor');
-    if($buffer) {
+    if(my $buffer = ReadFile('/sys/class/dmi/id/board_vendor')) {
         $motherboard->{'1Vendor'} = $1 if($buffer =~ /$re_anyword/);
-        undef $buffer;
     }
-    $buffer = ReadFile('/sys/class/dmi/id/board_name');
-    if($buffer) {
+    if(my $buffer = ReadFile('/sys/class/dmi/id/board_name')) {
         $motherboard->{'2Board'} = $1 if($buffer =~ /$re_anyword/);
-        undef $buffer;
     }
-    $buffer = ReadFile('/sys/class/dmi/id/bios_vendor');
-    if($buffer) {
+    if(my $buffer = ReadFile('/sys/class/dmi/id/bios_vendor')) {
         $motherboard->{'3Bios'} = $1 if($buffer =~ /$re_anyword/);
-        undef $buffer;
     }
-    $buffer = ReadFile('/sys/class/dmi/id/bios_version');
-    if($buffer) {
+    if(my $buffer = ReadFile('/sys/class/dmi/id/bios_version')) {
         $motherboard->{'3Bios'} = "$motherboard->{'3Bios'} ($1)" if($buffer =~ /$re_anyword/);
-        undef $buffer;
     }
 }
 #==========================OPERATING SYSTEM
