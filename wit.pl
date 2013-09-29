@@ -60,12 +60,10 @@ sub CommithForth ($) { #pass (cmd)
 }
 
 sub ReadFile ($) { #pass (file)
-    my $filename = $_[0]; my $contents = undef; my $fh = undef; local $/ = undef;
-    if(-e -r $filename and open($fh, '<', $filename)) {
-        $contents = <$fh>;
-        close($fh);
+    if(open my $fh, '<', $_[0]) {
+        return do { local $/; <$fh>; };
     }
-    return $contents;
+    return undef;
 }
 
 my $version_string = "What-Is-This (wit) version $wit_version.\n";
