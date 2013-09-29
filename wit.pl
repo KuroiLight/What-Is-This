@@ -516,14 +516,6 @@ sub PrintList ($) {
     }
 }
 
-sub HasContents ($) {
-    my $count = 0;
-    foreach my $elem (values %{$_[0]}) {
-        if($elem) { $count++; }
-    }
-    return $count;
-}
-
 my $re_nosortnum = eval { qr/[\d]?(.+)/ };
 
 sub PrintHashes {
@@ -535,12 +527,11 @@ sub PrintHashes {
 }
 
 sub PrintHashTable ($$) {
-    if(HasContents($_[0])) {
-        print "${title_color}${_[1]}\n";
-        for my $tkey (sort keys %{$_[0]}) {     #using numbers to sort a hash is a dirty hack, but its the only thing I 
-            $tkey =~ /$re_nosortnum/;            # could come up with to maintain order, without writing garbage.
-            PrintEntry($1, $_[0]{$tkey});
-        }
+    my $printedtitle;
+    for my $tkey (sort keys %{$_[0]}) {
+        do { print "${title_color}${_[1]}\n"; $printedtitle = 1; } if(not ($printedtitle) and $_[0]{$tkey}); #removes cost of HasContents() loop
+        $tkey =~ /$re_nosortnum/;
+        PrintEntry($1, $_[0]{$tkey});
     }
 }
 #==========================WRITE OUTPUT/MAIN
