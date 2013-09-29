@@ -507,10 +507,14 @@ sub PrintEntry ($$) {
     }
 }
 
-sub PrintList ($) {
-    my $list = $_[0]; my $count = 0;
+sub PrintList ($$) {
+    my $list = $_[0]; my $printedtitle;
     foreach my $elem (@{$list}) {
         if($elem->{version}) {
+            do {
+                print "${title_color}${_[1]}\n";
+                $printedtitle = 1;
+            } if(not ($printedtitle) and $elem); #removes cost of HasContents() loop
             PrintEntry($elem->{name}, $elem->{version});
         }
     }
@@ -521,15 +525,17 @@ my $re_nosortnum = eval { qr/[\d]?(.+)/ };
 sub PrintHashes {
     for my $vals (sort keys %LISTS) {
         $vals =~ /$re_nosortnum/;
-        print "${title_color}$1-\n";
-        PrintList($LISTS{$vals});
+        PrintList($LISTS{$vals}, $1);
     }
 }
 
 sub PrintHashTable ($$) {
     my $printedtitle;
     for my $tkey (sort keys %{$_[0]}) {
-        do { print "${title_color}${_[1]}\n"; $printedtitle = 1; } if(not ($printedtitle) and $_[0]{$tkey}); #removes cost of HasContents() loop
+        do {
+            print "${title_color}${_[1]}\n";
+            $printedtitle = 1;
+        } if(not ($printedtitle) and $_[0]{$tkey}); #removes cost of HasContents() loop
         $tkey =~ /$re_nosortnum/;
         PrintEntry($1, $_[0]{$tkey});
     }
