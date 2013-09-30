@@ -34,7 +34,7 @@ my @bins = (
 );
 
 #untaint path
-$ENV{'PATH'} = undef;
+local $ENV{'PATH'} = undef;
 for my $ind (0..((scalar @bins) - 1)) {
     if(-e -d $bins[$ind]) {
         $ENV{'PATH'} .= ':' if($ind);
@@ -43,7 +43,6 @@ for my $ind (0..((scalar @bins) - 1)) {
         splice @bins, $ind, 1;
     }
 }
-
 
 my $langs = 0;
 my $colors = 1;
@@ -174,10 +173,11 @@ my %LISTS = (
         { name => 'Joe',         versioncmd => 'joe',
             altcmd => '' }, #no version option...
         { name => 'Kate',        versioncmd => 'kate --version',
-            edgecase => eval { qr/(?:Kate:[\s])$re_version/ }},
+            edgecase => eval { qr/(?:Kate:[\s])$re_version/i }},
         { name => 'Leafpad',     versioncmd => 'leafpad --version' },
         { name => 'medit',       versioncmd => 'medit --version' },
-        { name => 'mousepad',    versioncmd => 'mousepad --version' },
+        { name => 'mousepad',    versioncmd => 'mousepad',
+            altcmd => '' },
         { name => 'nano',        versioncmd => 'nano --version' },
         { name => 'SublimeText 2', versioncmd => 'subl -v',
             edgecase => eval { qr/(?:[\d]?[\s\w]+)([\d]{4})/i } },
@@ -190,14 +190,12 @@ my %LISTS = (
 );
 
 sub PopulateLists { #REPLACE WITH ASYNC IPC MAYBE?
-    foreach my $vals (keys %LISTS) {
-        foreach my $elem ( @{$LISTS{$vals}}) {
+    foreach my $vals (sort keys %LISTS) {
+        foreach my $elem ( sort @{$LISTS{$vals}}) {
             if(CommithForth((split /\ /, $elem->{versioncmd})[0])) {
-                if(($elem->{altcmd} ? `$elem->{altcmd} 2>&1` : `$elem->{versioncmd} 2>&1`) =~ ($elem->{edgecase} ? $elem->{edgecase} : $re_version)) {
-                    $elem->{version} = $1;
-                } else {
-                    $elem->{version} = 'unknown';
-                }
+                $elem->{version} = 'unknown';
+                next if(exists $elem->{altcmd} and not $elem->{altcmd});
+                $elem->{version} = $1 if(($elem->{altcmd} ? `$elem->{altcmd} 2>&1` : `$elem->{versioncmd} 2>&1`) =~ ($elem->{edgecase} ? $elem->{edgecase} : $re_version));
             }
         }
     }
