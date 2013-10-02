@@ -22,7 +22,7 @@ eval {
     utf8->import();
 };
 
-my $wit_version = '0.43.0';
+my $wit_version = '0.43.2';
 
 my @bins = (
 '/usr/bin',
@@ -337,6 +337,7 @@ my %desktops = (
     'gnome' => 'GNOME',
     'cinnamon' => 'Cinnamon',
     'lx' => 'LXDE',
+    'razor' => 'Razor-Qt',
 );
 
 my $os = {
@@ -407,7 +408,7 @@ sub GetOSInfo {
             }
         }
         foreach my $de (keys %desktops) {
-            if(grep(/$de[\-\_]session/, @plist)) {
+            if(grep(/$de(?:-|_|)session/, @plist)) {
                 $DE = $desktops{$de};
                 last;
             }
