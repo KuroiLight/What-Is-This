@@ -22,7 +22,7 @@ eval {
     utf8->import();
 };
 
-my $wit_version = '0.43.2';
+my $wit_version = '0.43.3';
 
 my @bins = (
 '/usr/bin',
@@ -137,6 +137,7 @@ my %LISTS = (
     ],
     '1Programming' => [
         { name => 'Falcon',      versioncmd => 'falcon -v' },
+        { name => 'Go',      versioncmd => 'go version' },
         { name => 'HaXe',        versioncmd => 'haxe -version' },
         { name => 'Io',          versioncmd => 'io --version',
             edgecase => eval { qr/(?:v\.[\s])([\d]+)/ }},
@@ -148,6 +149,7 @@ my %LISTS = (
         { name => 'Perl6',       versioncmd => 'perl6 -v' },
         { name => 'Python2',     versioncmd => 'python2 --version' },
         { name => 'Python3',     versioncmd => 'python3 --version' },
+        { name => 'Qore',     versioncmd => 'qore --version' },
         { name => 'Racket',      versioncmd => 'racket --version' },
         { name => 'Ruby',        versioncmd => 'ruby --version' },
         { name => 'Squirrel',    versioncmd => 'squirrel -v' },
