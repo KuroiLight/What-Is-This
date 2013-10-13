@@ -7,7 +7,7 @@ What-Is-This
 #####Download
 Run the following (assuming you have git)
 ```
-git -b master https://github.com/KuroiLight/What-Is-This.git
+git -b dev https://github.com/KuroiLight/What-Is-This.git
 ```
 #####Requirements
  - Perl 5 (tested on 5.10)
