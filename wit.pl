@@ -489,7 +489,13 @@ sub GetGPUInfo { #WILL NEED MORE DRIVER INFORMATION TO FINISH
                 if($drm =~ /(r(?:adeon|[\d]{3}(?:g)?))/) {
                     $gpu->{'3Driver'} = 'OpenSource ($1)';
                 } elsif($drm eq 'fglrx') {
-                    $gpu->{'3Driver'} = 'Proprietary'; #add search for amd data
+                    $gpu->{'3Driver'} = 'Proprietary';
+                    #probably wont work, but worth a try.
+                    if(my $contents = ReadFile('/proc/driver/ati/gpus/0/information')) { #delve further
+                        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
+                        my $dvers = $1 if ( (ReadFile '/proc/driver/ati/version') =~ /Module[\s]+$re_version[\s]/);
+                        $gpu->{'3Driver'} .= " ($dvers)";
+                    }
                 }
             } elsif($drm =~ /$re_vid{intel}/) { #Intel
                 $gpu->{'1Vendor'} = 'Intel';
