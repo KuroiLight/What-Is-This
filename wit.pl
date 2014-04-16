@@ -102,9 +102,9 @@ sub Startup { #init code here
     $colors = 0 if(system('tput colors > /dev/null 2>&1'));
     if($colors) {
         if($colors == 1) {
-            $title_color = "\033[1;33m";
-            $subtitle_color = "\033[1;31m";
-            $value_color = "\033[1;34m";
+            $title_color = "\033[2;32m";
+            $subtitle_color = "\033[2;31m";
+            $value_color = "\033[2;34m";
         } elsif ($colors == 2) {
             $title_color = "\033[2;33m";
             $subtitle_color = "\033[2;35m";
@@ -470,42 +470,36 @@ my %re_vid = (
 
 sub GetGPUInfo { #WILL NEED MORE DRIVER INFORMATION TO FINISH
     if(my $buffer = ReadFile('/proc/modules')) {
-        if($buffer =~ /^(drm.+live.+)$/im) {
-            my $drm = $1;
-            if($drm =~ /$re_vid{nvidia}/) { #NVIDIA
-                $gpu->{'1Vendor'} = 'NVIDIA'; $drm = $1;
-                if($drm eq 'nouveau') {
-                    $gpu->{'3Driver'} = 'OpenSource (nouveau)';
-                } elsif($drm eq 'nvidia') {
-                    $gpu->{'3Driver'} = 'Proprietary';
-                    if(my $contents = ReadFile('/proc/driver/nvidia/gpus/0/information')) { #delve further
-                        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
-                        my $dvers = $1 if ( (ReadFile '/proc/driver/nvidia/version') =~ /Module[\s]+$re_version[\s]/);
-                        $gpu->{'3Driver'} .= " ($dvers)";
-                    }
+        if($buffer =~ /$re_vid{nvidia}/) {
+            $gpu->{'1Vendor'} = 'NVIDIA';
+            if($1 eq 'nouveau') {
+                $gpu->{'3Driver'} = 'OpenSource (nouveau)';
+            } elsif($1 eq 'nvidia') {
+                $gpu->{'3Driver'} = 'Proprietary';
+                if(my $contents = ReadFile('/proc/driver/nvidia/gpus/0/information')) { #delve further
+                    $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
+                    my $dvers = $1 if ( (ReadFile '/proc/driver/nvidia/version') =~ /Module[\s]+$re_version[\s]/);
+                    $gpu->{'3Driver'} .= " ($dvers)";
                 }
-            } elsif($drm =~ /$re_vid{amd}/) { #AMD/ATI
-                $gpu->{'1Vendor'} = 'AMD'; $drm = $1;
-                if($drm =~ /(r(?:adeon|[\d]{3}(?:g)?))/) {
-                    $gpu->{'3Driver'} = 'OpenSource ($1)';
-                } elsif($drm eq 'fglrx') {
-                    $gpu->{'3Driver'} = 'Proprietary';
-                    #probably wont work, but worth a try.
-                    if(my $contents = ReadFile('/proc/driver/ati/gpus/0/information')) { #delve further
-                        $gpu->{'2Model'} = $1 if ($contents =~ /Model:[\.\s]+(.+)/);
-                        my $dvers = $1 if ( (ReadFile '/proc/driver/ati/version') =~ /Module[\s]+$re_version[\s]/);
-                        $gpu->{'3Driver'} .= " ($dvers)";
-                    }
-                }
-            } elsif($drm =~ /$re_vid{intel}/) { #Intel
-                $gpu->{'1Vendor'} = 'Intel';
-            } elsif($drm =~ /$re_vid{vbox}/) { #vbox
-                $gpu->{'1Vendor'} = 'VirtualBox';
-                $gpu->{'3Driver'} = 'vboxvideo';
             }
+        } elsif($buffer =~ /$re_vid{amd}/) {
+            $gpu->{'1Vendor'} = 'AMD';
+            if($1 eq 'fglrx') {
+                $gpu->{'3Driver'} = 'Proprietary';
+                $gpu->{'2Model'} = $1 if(`fglrxinfo` =~ qr/renderer string: (.+)/i);
+                #not yet sure how to get model and version from /proc or other quick way
+            } else {
+                $gpu->{'3Driver'} = 'OpenSource ($1)';
+            }
+        } elsif($buffer =~ /$re_vid{intel}/) { #Intel
+            $gpu->{'1Vendor'} = 'Intel';
+        } elsif($buffer =~ /$re_vid{vbox}/) { #vbox
+            $gpu->{'1Vendor'} = 'VirtualBox';
+            $gpu->{'3Driver'} = 'vboxvideo';
         }
     }
 }
+
 
 #==========================((length($_[0]) >= 16) ? '' : ((length($_[0]) >= 8) ? '' : "\t"))
 sub PrintEntry ($$) {
